@@ -1,0 +1,16 @@
+body {
+    font-family: Arial;
+    background: black;
+    color: white;
+    text-align: center;
+}
+
+.dashboard {
+    padding: 20px;
+}
+
+.card {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid white;
+}

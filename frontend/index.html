@@ -2,25 +2,25 @@
 <html>
 <head>
     <title>AveoOS</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <h1>AveoOS Dashboard</h1>
+    <div class="dashboard">
 
-    <div id="status"></div>
+        <h1>AveoOS</h1>
 
-    <script>
-        async function loadStatus() {
-            const res = await fetch("http://127.0.0.1:8000/status");
-            const data = await res.json();
+        <div id="clock"></div>
 
-            document.getElementById("status").innerHTML =
-                "Bluetooth: " + data.bluetooth + "<br>" +
-                "Music: " + data.music + "<br>" +
-                "GPS: " + data.gps;
-        }
+        <div class="card" id="bluetooth"></div>
 
-        loadStatus();
-        setInterval(loadStatus, 2000);
-    </script>
+        <div class="card" id="music"></div>
+
+        <button onclick="play()">Play</button>
+        <button onclick="pause()">Pause</button>
+
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
