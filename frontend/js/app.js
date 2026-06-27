@@ -131,13 +131,13 @@ async function loadStatus() {
 
         const albumArt = document.getElementById("album-art");
 
-        if (bt.playing && bt.track) {
-            document.getElementById("track").innerText = bt.track;
+        if (bt.playing) {
+            document.getElementById("track").innerText = bt.track || "--";
             document.getElementById("artist").innerText = bt.artist || "--";
             document.getElementById("play-btn").innerText = "⏸";
             isPlaying = true;
 
-            if (bt.track !== lastTrack) {
+            if (bt.track && bt.track !== lastTrack) {
                 lastTrack = bt.track;
                 trackPosition = 0;
                 trackDuration = bt.duration || 0;
@@ -184,12 +184,20 @@ setInterval(() => {
 
 // Controlos
 async function togglePlay() {
+    // Atualização otimista: muda já o ícone, em vez de esperar pelo
+    // round-trip do Bluetooth (telemóvel demora a confirmar).
+    isPlaying = !isPlaying;
+    document.getElementById("play-btn").innerText = isPlaying ? "⏸" : "▶";
+
     if (isPlaying) {
-        await fetch("/music/pause", { method: "POST" });
-    } else {
         await fetch("/music/play", { method: "POST" });
+    } else {
+        await fetch("/music/pause", { method: "POST" });
     }
-    loadStatus();
+
+    // Confirma com o estado real passado algum tempo, para dar
+    // espaço à propagação via Bluetooth (e corrigir se algo falhou).
+    setTimeout(loadStatus, 800);
 }
 
 async function nextTrack() {
