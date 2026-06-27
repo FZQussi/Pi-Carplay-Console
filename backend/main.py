@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 
 from backend.services.music import MusicService
 from backend.services.bluetooth import BluetoothService
-
+import httpx
 app = FastAPI(title="AveoOS")
 
 app.add_middleware(
@@ -47,3 +47,33 @@ def bluetooth_discoverable():
 @app.post("/bluetooth/disconnect")
 def bluetooth_disconnect():
     return bluetooth.disconnect()
+
+@app.get("/music/cover")
+async def get_cover():
+    try:
+        bt_status = bluetooth.get_status()
+        artist = bt_status.get("artist", "")
+        track = bt_status.get("track", "")
+
+        if not artist or not track:
+            return {"cover": None}
+
+        # Procura na MusicBrainz
+        search_url = f"https://musicbrainz.org/ws/2/recording/?query=recording:{track}+artist:{artist}&fmt=json&limit=1"
+        async with httpx.AsyncClient() as client:
+            r = await client.get(search_url, headers={"User-Agent": "AveoOS/1.0"})
+            data = r.json()
+
+            recordings = data.get("recordings", [])
+            if not recordings:
+                return {"cover": None}
+
+            release_id = recordings[0].get("releases", [{}])[0].get("id")
+            if not release_id:
+                return {"cover": None}
+
+            cover_url = f"https://coverartarchive.org/release/{release_id}/front"
+            return {"cover": cover_url}
+
+    except Exception as e:
+        return {"cover": None, "error": str(e)}

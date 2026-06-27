@@ -32,26 +32,33 @@ async function loadStatus() {
         const data = await res.json();
         const bt = data.bluetooth;
 
-        // Barra de topo
         document.getElementById("bt-status").innerHTML = bt.connected
             ? `🔵 ${bt.device}` : "⚫ Sem Bluetooth";
 
-        // Settings
         if (document.getElementById("bt-device-name")) {
-            document.getElementById("bt-device-name").innerText =
-                bt.device || "--";
+            document.getElementById("bt-device-name").innerText = bt.device || "--";
         }
 
-        // Música
         if (bt.playing && bt.track) {
             document.getElementById("track").innerText = bt.track;
             document.getElementById("artist").innerText = bt.artist || "--";
             document.getElementById("play-btn").innerText = "⏸";
             isPlaying = true;
+
+            // Vai buscar a capa
+            const coverRes = await fetch("/music/cover");
+            const coverData = await coverRes.json();
+            const albumArt = document.getElementById("album-art");
+            if (coverData.cover) {
+                albumArt.innerHTML = `<img src="${coverData.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
+            } else {
+                albumArt.innerHTML = "🎵";
+            }
         } else {
             document.getElementById("track").innerText = bt.connected ? "Em pausa" : "--";
             document.getElementById("artist").innerText = bt.connected ? bt.device : "--";
             document.getElementById("play-btn").innerText = "▶";
+            document.getElementById("album-art").innerHTML = "🎵";
             isPlaying = false;
         }
     } catch (e) {
