@@ -2,6 +2,16 @@ import subprocess
 import re
 import os
 
+
+def _clean_artist(artist):
+    """Algumas apps (ex.: Spotify) metem texto extra no campo de artista
+    da notificação, tipo "Farruko • Recomendado para ti". Fica só a
+    primeira parte, antes do separador "•"."""
+    if not artist:
+        return artist
+    return artist.split("•")[0].strip()
+
+
 class BluetoothService:
     def get_status(self):
         try:
@@ -26,7 +36,7 @@ class BluetoothService:
                     parts = meta.stdout.strip().split("|")
                     if len(parts) == 3:
                         playing = parts[0] == "Playing"
-                        artist = parts[1]
+                        artist = _clean_artist(parts[1])
                         track = parts[2]
 
             return {
