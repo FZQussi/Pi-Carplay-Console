@@ -5,38 +5,34 @@ class BluetoothService:
     def get_status(self):
         try:
             result = subprocess.run(
-                ["bluetoothctl", "info"],
+                ["bluetoothctl", "info", "14:49:D4:7F:2A:18"],
                 capture_output=True, text=True, timeout=5
             )
-            output = result.stdout
+            connected = "Connected: yes" in result.stdout
+            name_match = re.search(r"Name: (.+)", result.stdout)
 
-            if "Device" in output:
-                name_match = re.search(r"Name: (.+)", output)
-                device_match = re.search(r"Device ([0-9A-F:]+)", output)
-                connected_match = re.search(r"Connected: (\w+)", output)
+            track = None
+            artist = None
+            playing = False
 
-                return {
-                    "connected": connected_match.group(1) == "yes" if connected_match else False,
-                    "device": name_match.group(1).strip() if name_match else "Desconhecido",
-                    "address": device_match.group(1) if device_match else None
-                }
-            else:
-                return {"connected": False, "device": None, "address": None}
+            if connected:
+                meta = subprocess.run(
+                    ["playerctl", "metadata", "--format", "{{status}}|{{artist}}|{{title}}"],
+                    capture_output=True, text=True, timeout=3
+                )
+                if meta.returncode == 0:
+                    parts = meta.stdout.strip().split("|")
+                    if len(parts) == 3:
+                        playing = parts[0] == "Playing"
+                        artist = parts[1]
+                        track = parts[2]
 
+            return {
+                "connected": connected,
+                "device": name_match.group(1).strip() if name_match else None,
+                "playing": playing,
+                "track": track,
+                "artist": artist,
+            }
         except Exception as e:
-            return {"connected": False, "device": None, "error": str(e)}
-
-    def make_discoverable(self):
-        try:
-            subprocess.run(["bluetoothctl", "discoverable", "on"], timeout=5)
-            subprocess.run(["bluetoothctl", "pairable", "on"], timeout=5)
-            return {"status": "discoverable"}
-        except Exception as e:
-            return {"error": str(e)}
-
-    def disconnect(self):
-        try:
-            subprocess.run(["bluetoothctl", "disconnect"], timeout=5)
-            return {"status": "disconnected"}
-        except Exception as e:
-            return {"error": str(e)}
+            return {"connected": False, "device": None, "playing": False, "error": str(e)}
