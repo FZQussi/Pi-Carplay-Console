@@ -5,8 +5,14 @@ Endpoints:
 - POST /music/pause    — pause
 - POST /music/next     — skip
 - POST /music/prev     — previous
-- GET  /music/cover    — cover via iTunes Search API (procura track+artist)
-- GET  /music/lyrics   — letra (LRCLIB; sincronizada quando disponível)
+- GET  /music/cover    — cover via iTunes Search API (recebe artist+track)
+- GET  /music/lyrics   — letra (LRCLIB; recebe artist+track)
+
+`artist`/`track` vêm como query params, fornecidos pelo frontend (que
+já os tem a partir do `/status`). Propositadamente NÃO voltamos a
+chamar `BluetoothService.get_status()` aqui — isso lançaria de novo
+`bluetoothctl`/`playerctl` por cada pedido, o que é lento e pode
+atrasar o resto do sistema num dispositivo com pouca CPU.
 
 A capa e a letra usam APIs públicas (iTunes e LRCLIB), nenhuma exige
 chave/registo. É a única parte do AveoOS V1 que *precisa* de
@@ -15,13 +21,12 @@ internet; o resto funciona offline.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
 import httpx
 from fastapi import APIRouter
 
-from backend.services import get_bluetooth, get_music
+from backend.services import get_music
 
 # Garante que os logs aparecem na consola onde o uvicorn está a correr
 # (ou em `journalctl -u <serviço> -f`, se estiver como serviço systemd).
@@ -67,22 +72,10 @@ def prev_track():
 
 
 @router.get("/cover")
-async def get_cover():
-    """Procura a capa na iTunes Search API a partir do artist/track atual.
-
-    Lê o estado via `BluetoothService` (e não do `MusicService` mock)
-    porque o `playerctl` que reporta track+artist vive no mesmo escopo
-    do estado Bluetooth.
-    """
+async def get_cover(artist: str = "", track: str = ""):
+    """Procura a capa na iTunes Search API a partir do artist/track
+    fornecidos pelo frontend (que já os tem via `/status`)."""
     try:
-        # get_status() faz subprocess.run() (bluetoothctl/playerctl) — é
-        # bloqueante. Corrê-lo numa thread evita travar o event loop
-        # inteiro, o que atrasava/cortava outros pedidos em curso
-        # (ex.: o /music/lyrics, causando ReadTimeout).
-        bt_status = await asyncio.to_thread(get_bluetooth().get_status)
-        artist = bt_status.get("artist", "")
-        track = bt_status.get("track", "")
-
         if not artist or not track:
             return {"cover": None}
 
@@ -119,15 +112,13 @@ async def get_cover():
 
     except Exception as e:
         logger.exception("Erro ao obter capa")
-        return {"cover": None, "error": str(e)}
+        return {"cover": None, "error": f"{type(e).__name__}: {e}"}
 
 
 @router.get("/lyrics")
-async def get_lyrics():
-    """Procura a letra na LRCLIB a partir do artist/track atual.
-
-    Lê o estado via `BluetoothService`, pela mesma razão do
-    `/music/cover`: é onde o `playerctl` reporta track+artist.
+async def get_lyrics(artist: str = "", track: str = ""):
+    """Procura a letra na LRCLIB a partir do artist/track fornecidos
+    pelo frontend (que já os tem via `/status`).
 
     Devolve `synced` (formato LRC, com timestamps por linha) quando
     a LRCLIB tem essa versão disponível, caso contrário só `plain`
@@ -135,12 +126,6 @@ async def get_lyrics():
     vêm `None` e o frontend mostra um placeholder.
     """
     try:
-        # Mesma razão do /music/cover: corre numa thread para não
-        # travar o event loop com a chamada bloqueante a bluetoothctl/playerctl.
-        bt_status = await asyncio.to_thread(get_bluetooth().get_status)
-        artist = bt_status.get("artist", "")
-        track = bt_status.get("track", "")
-
         if not artist or not track:
             logger.info("Sem artist/track ainda — a saltar pedido de letra.")
             return {"synced": None, "plain": None}

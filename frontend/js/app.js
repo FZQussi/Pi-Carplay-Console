@@ -74,13 +74,14 @@ function renderLyricsPlaceholder(msg) {
     if (container) container.innerHTML = `<div class="lyrics-line">${msg}</div>`;
 }
 
-async function loadLyrics() {
+async function loadLyrics(artist, track) {
     lyricsLines = [];
     currentLyricIndex = -1;
     renderLyricsPlaceholder("🎤 A procurar letra...");
 
     try {
-        const res = await fetch("/music/lyrics");
+        const url = `/music/lyrics?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`;
+        const res = await fetch(url);
         if (!res.ok) {
             console.error("Erro HTTP ao obter letra:", res.status, res.statusText);
             renderLyricsPlaceholder("🎤 Letra não disponível");
@@ -170,7 +171,7 @@ async function loadStatus() {
                 albumArt.innerHTML = pickPlaceholderEmoji(hash);
 
                 // Vai buscar capa (iTunes Search API)
-                fetch("/music/cover")
+                fetch(`/music/cover?artist=${encodeURIComponent(bt.artist || "")}&track=${encodeURIComponent(bt.track)}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.cover) {
@@ -181,7 +182,7 @@ async function loadStatus() {
                     .catch(e => console.error("Erro ao obter capa (fetch):", e));
 
                 // Vai buscar a letra (LRCLIB)
-                loadLyrics();
+                loadLyrics(bt.artist || "", bt.track);
             }
         } else {
             document.getElementById("track").innerText = bt.connected ? "Em pausa" : "--";
