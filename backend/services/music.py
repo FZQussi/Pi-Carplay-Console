@@ -1,4 +1,6 @@
 class MusicService:
+    """Stub de música. Controlos básicos, ainda não liga ao MPRIS/playerctl."""
+
     def __init__(self):
         self.playing = False
         self.track = {
@@ -20,3 +22,11 @@ class MusicService:
     def pause(self):
         self.playing = False
         return {"status": "paused"}
+
+    # TODO Sprint 4 — substituir por chamada real a `playerctl next/previous`.
+    def next(self):
+        return {"status": "queued"}
+
+    # TODO Sprint 4 — substituir por chamada real a `playerctl next/previous`.
+    def prev(self):
+        return {"status": "queued"}

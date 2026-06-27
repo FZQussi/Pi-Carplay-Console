@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>AveoOS</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
@@ -18,12 +18,12 @@
         <div class="app-icon" onclick="showScreen('screen-music')">
             <div class="app-icon-img">🎵</div>
             <div class="app-icon-label">Música</div>
-        </div>
+       </div>
         <div class="app-icon" onclick="showScreen('screen-settings')">
             <div class="app-icon-img">⚙️</div>
             <div class="app-icon-label">Definições</div>
-        </div>
-    </div>
+       </div>
+   </div>
 </div>
 
 <!-- Página de música -->
@@ -34,21 +34,21 @@
         <div class="track-info">
             <div class="track-name" id="track">--</div>
             <div class="track-artist" id="artist">--</div>
-        </div>
+       </div>
         <div class="progress-bar-container">
-            <div class="progress-bar" id="progress-bar"></div>
-        </div>
+            <div class="progress-bar" id="progress-bar</div>
+       </div>
         <div class="progress-times">
             <span id="time-current">0:00</span>
             <span id="time-total">0:00</span>
-        </div>
+       </div>
         <div class="controls">
             <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
             <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
             <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
-        </div>
+       </div>
         <button class="bt-connect-btn" onclick="makeDiscoverable()">🔵 Ligar Bluetooth</button>
-    </div>
+   </div>
 </div>
 
 <!-- Página de definições -->
@@ -59,10 +59,10 @@
         <div class="setting-item">
             <span>Dispositivo Bluetooth</span>
             <span id="bt-device-name">--</span>
-        </div>
-    </div>
+       </div>
+   </div>
 </div>
 
-<script src="/static/app.js"></script>
+<script src="/static/js/app.js</script>
 </body>
 </html>

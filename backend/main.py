@@ -1,17 +1,31 @@
+"""AveoOS backend — entrypoint FastAPI.
+
+Responsabilidades:
+- Montar a aplicação com CORS permissivo (kiosk local)
+- Servir o frontend (SPA vanilla) em `/`
+- Servir assets estáticos em `/static/...`
+- Incluir routers REST por recurso (music, bluetooth, system)
+- Disponibilizar `/status` (resumo consolidado do estado)
+
+Mais detalhes em `docs/ARCHITECTURE.md`. Workflow de dev em
+`docs/DEVELOPMENT.md`.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import httpx
-import base64
-import subprocess
-import os
+from fastapi.staticfiles import StaticFiles
 
-from backend.services.music import MusicService
-from backend.services.bluetooth import BluetoothService
+from backend.api.bluetooth import router as bluetooth_router
+from backend.api.music import router as music_router
+from backend.api.system import router as system_router
+from backend.core.config import FRONTEND_DIR, FRONTEND_PAGES_DIR
+from backend.services import get_bluetooth, get_music
 
 app = FastAPI(title="AveoOS")
 
+# CORS permissivo: o kiosk acede em localhost e nada mais. Para acesso
+# remoto usar um reverse proxy autenticado (fora do scope da V1).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,90 +34,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-music = MusicService()
-bluetooth = BluetoothService()
+# StaticFiles serve a árvore inteira de frontend/. Os ficheiros ficam
+# disponíveis em /static/dirs/etc.css etc.
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# Routers por recurso
+app.include_router(music_router)
+app.include_router(bluetooth_router)
+app.include_router(system_router)
 
-SPOTIFY_CLIENT_ID = "9d28e91e4abb4bb7b7611165324c507f"
-SPOTIFY_CLIENT_SECRET = "c2ae1e031fd84cf0b753bf977a43d712"
-
-async def get_spotify_token():
-    credentials = base64.b64encode(
-        f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}".encode()
-    ).decode()
-    async with httpx.AsyncClient() as client:
-        r = await client.post(
-            "https://accounts.spotify.com/api/token",
-            headers={"Authorization": f"Basic {credentials}"},
-            data={"grant_type": "client_credentials"}
-        )
-        return r.json().get("access_token")
 
 @app.get("/")
 def root():
-    return FileResponse("frontend/index.html")
+    """Serve o SPA vanilla. Todas as screens vivem dentro deste HTML."""
+    return FileResponse(str(FRONTEND_PAGES_DIR / "index.html"))
+
 
 @app.get("/status")
 def status():
+    """Estado consolidado, usado pelo polling de 2 segundos no frontend."""
     return {
-        "bluetooth": bluetooth.get_status(),
-        "music": music.get_current_track()
+        "bluetooth": get_bluetooth().get_status(),
+        "music": get_music().get_current_track(),
     }
-
-@app.post("/music/play")
-def play():
-    return music.play()
-
-@app.post("/music/pause")
-def pause():
-    return music.pause()
-
-@app.post("/music/next")
-def next_track():
-    return music.next()
-
-@app.post("/music/prev")
-def prev_track():
-    return music.prev()
-
-@app.post("/bluetooth/discoverable")
-def bluetooth_discoverable():
-    return bluetooth.make_discoverable()
-
-@app.post("/bluetooth/disconnect")
-def bluetooth_disconnect():
-    return bluetooth.disconnect()
-
-@app.get("/music/cover")
-async def get_cover():
-    try:
-        bt_status = bluetooth.get_status()
-        artist = bt_status.get("artist", "")
-        track = bt_status.get("track", "")
-
-        if not artist or not track:
-            return {"cover": None}
-
-        token = await get_spotify_token()
-
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                "https://api.spotify.com/v1/search",
-                headers={"Authorization": f"Bearer {token}"},
-                params={
-                    "q": f"track:{track} artist:{artist}",
-                    "type": "track",
-                    "limit": 1
-                }
-            )
-            data = r.json()
-            items = data.get("tracks", {}).get("items", [])
-            if not items:
-                return {"cover": None}
-
-            cover = items[0]["album"]["images"][0]["url"]
-            return {"cover": cover}
-
-    except Exception as e:
-        return {"cover": None, "error": str(e)}
