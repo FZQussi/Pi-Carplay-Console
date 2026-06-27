@@ -1,5 +1,6 @@
 import subprocess
 import re
+import os
 
 class BluetoothService:
     def get_status(self):
@@ -18,7 +19,8 @@ class BluetoothService:
             if connected:
                 meta = subprocess.run(
                     ["playerctl", "metadata", "--format", "{{status}}|{{artist}}|{{title}}"],
-                    capture_output=True, text=True, timeout=3
+                    capture_output=True, text=True, timeout=3,
+                    env={**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
                 )
                 if meta.returncode == 0:
                     parts = meta.stdout.strip().split("|")
@@ -36,3 +38,18 @@ class BluetoothService:
             }
         except Exception as e:
             return {"connected": False, "device": None, "playing": False, "error": str(e)}
+
+    def make_discoverable(self):
+        try:
+            subprocess.run(["bluetoothctl", "discoverable", "on"], timeout=5)
+            subprocess.run(["bluetoothctl", "pairable", "on"], timeout=5)
+            return {"status": "discoverable"}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def disconnect(self):
+        try:
+            subprocess.run(["bluetoothctl", "disconnect"], timeout=5)
+            return {"status": "disconnected"}
+        except Exception as e:
+            return {"error": str(e)}
