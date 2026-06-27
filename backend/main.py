@@ -51,37 +51,15 @@ def bluetooth_disconnect():
 @app.get("/music/cover")
 async def get_cover():
     try:
-        bt_status = bluetooth.get_status()
-        artist = bt_status.get("artist", "")
-        track = bt_status.get("track", "")
-
-        if not artist or not track:
-            return {"cover": None}
-
-        async with httpx.AsyncClient() as client:
-            # Pesquisa mais precisa por artista e título exatos
-            search_url = (
-                f"https://musicbrainz.org/ws/2/release/?"
-                f"query=artist:\"{artist}\" AND release:\"{track}\"&fmt=json&limit=5"
-            )
-            r = await client.get(search_url, headers={"User-Agent": "AveoOS/1.0 ( test@test.com )"})
-            data = r.json()
-
-            releases = data.get("releases", [])
-            if not releases:
-                return {"cover": None}
-
-            # Tenta cada release até encontrar uma com capa
-            for release in releases:
-                release_id = release.get("id")
-                if not release_id:
-                    continue
-                cover_url = f"https://coverartarchive.org/release/{release_id}/front"
-                check = await client.get(cover_url, follow_redirects=False)
-                if check.status_code in (200, 307):
-                    return {"cover": str(check.headers.get("location", cover_url))}
-
-            return {"cover": None}
-
+        import os
+        result = subprocess.run(
+            ["playerctl", "metadata", "mpris:artUrl"],
+            capture_output=True, text=True, timeout=3,
+            env={**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
+        )
+        url = result.stdout.strip()
+        if url:
+            return {"cover": url}
+        return {"cover": None}
     except Exception as e:
         return {"cover": None, "error": str(e)}
