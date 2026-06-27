@@ -23,20 +23,21 @@ async function loadStatus() {
     const data = await res.json();
 
     const bt = data.bluetooth;
-    let btHtml = bt.connected ? `✅ ${bt.device}` : "❌ Sem dispositivo";
 
-    if (bt.connected && bt.playing) {
-        btHtml += `<br>🎵 ${bt.track} — ${bt.artist}`;
-    } else if (bt.connected) {
-        btHtml += "<br>⏸ Em pausa";
+    // Barra de topo
+    document.getElementById("bt-status").innerHTML = bt.connected
+        ? `🔵 ${bt.device}`
+        : "⚫ Sem Bluetooth";
+
+    // Página de música
+    if (bt.playing) {
+        document.getElementById("track").innerHTML = `🎵 ${bt.track}`;
+        document.getElementById("artist").innerHTML = bt.artist;
+    } else {
+        document.getElementById("track").innerHTML = bt.connected ? "⏸ Em pausa" : "--";
+        document.getElementById("artist").innerHTML = "--";
     }
-
-    document.getElementById("bluetooth").innerHTML = btHtml;
-    document.getElementById("music").innerHTML = bt.playing
-        ? `A tocar: ${bt.track} — ${bt.artist}`
-        : "Sem música";
 }
-
 setInterval(loadStatus, 2000);
 loadStatus();
 
