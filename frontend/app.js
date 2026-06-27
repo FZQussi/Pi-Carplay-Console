@@ -14,18 +14,29 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// Estado da música
+// Estado
 let isPlaying = false;
 let trackPosition = 0;
 let trackDuration = 0;
+let lastTrack = null;
 
-function formatTime(seconds) {
+function formatTime(microseconds) {
+    const seconds = Math.floor(microseconds / 1000000);
     const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
+    const s = seconds % 60;
     return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
-// Atualizar estado do backend
+function generateGradient(text) {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h1 = Math.abs(hash % 360);
+    const h2 = (h1 + 40) % 360;
+    return `linear-gradient(135deg, hsl(${h1},60%,25%), hsl(${h2},60%,15%))`;
+}
+
 async function loadStatus() {
     try {
         const res = await fetch("/status");
@@ -35,9 +46,10 @@ async function loadStatus() {
         document.getElementById("bt-status").innerHTML = bt.connected
             ? `🔵 ${bt.device}` : "⚫ Sem Bluetooth";
 
-        if (document.getElementById("bt-device-name")) {
-            document.getElementById("bt-device-name").innerText = bt.device || "--";
-        }
+        const btDeviceName = document.getElementById("bt-device-name");
+        if (btDeviceName) btDeviceName.innerText = bt.device || "--";
+
+        const albumArt = document.getElementById("album-art");
 
         if (bt.playing && bt.track) {
             document.getElementById("track").innerText = bt.track;
@@ -45,20 +57,30 @@ async function loadStatus() {
             document.getElementById("play-btn").innerText = "⏸";
             isPlaying = true;
 
-            // Vai buscar a capa
-            const coverRes = await fetch("/music/cover");
-            const coverData = await coverRes.json();
-            const albumArt = document.getElementById("album-art");
-            if (coverData.cover) {
-                albumArt.innerHTML = `<img src="${coverData.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
-            } else {
+            if (bt.track !== lastTrack) {
+                lastTrack = bt.track;
+                trackPosition = 0;
+                trackDuration = bt.duration || 0;
+
+                // Gradiente enquanto carrega
+                albumArt.style.background = generateGradient(bt.track + bt.artist);
                 albumArt.innerHTML = "🎵";
+
+                // Vai buscar capa ao Spotify
+                fetch("/music/cover")
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.cover) {
+                            albumArt.innerHTML = `<img src="${data.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
+                        }
+                    });
             }
         } else {
             document.getElementById("track").innerText = bt.connected ? "Em pausa" : "--";
             document.getElementById("artist").innerText = bt.connected ? bt.device : "--";
             document.getElementById("play-btn").innerText = "▶";
-            document.getElementById("album-art").innerHTML = "🎵";
+            albumArt.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
+            albumArt.innerHTML = "🎵";
             isPlaying = false;
         }
     } catch (e) {
@@ -69,14 +91,15 @@ async function loadStatus() {
 setInterval(loadStatus, 2000);
 loadStatus();
 
-// Simular progresso da barra (atualiza a cada segundo)
+// Progresso
 setInterval(() => {
     if (isPlaying) {
-        trackPosition = Math.min(trackPosition + 1, trackDuration || 300);
-        const pct = trackDuration > 0 ? (trackPosition / trackDuration) * 100 : 0;
+        trackPosition = Math.min(trackPosition + 1, trackDuration > 0 ? trackDuration / 1000000 : 300);
+        const total = trackDuration > 0 ? trackDuration / 1000000 : 0;
+        const pct = total > 0 ? (trackPosition / total) * 100 : 0;
         document.getElementById("progress-bar").style.width = pct + "%";
-        document.getElementById("time-current").innerText = formatTime(trackPosition);
-        document.getElementById("time-total").innerText = formatTime(trackDuration || 0);
+        document.getElementById("time-current").innerText = formatTime(trackPosition * 1000000);
+        document.getElementById("time-total").innerText = formatTime(trackDuration);
     }
 }, 1000);
 

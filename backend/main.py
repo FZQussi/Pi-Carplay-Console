@@ -2,10 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import httpx
+import base64
+import subprocess
+import os
 
 from backend.services.music import MusicService
 from backend.services.bluetooth import BluetoothService
-import httpx
+
 app = FastAPI(title="AveoOS")
 
 app.add_middleware(
@@ -20,6 +24,21 @@ music = MusicService()
 bluetooth = BluetoothService()
 
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+SPOTIFY_CLIENT_ID = "9d28e91e4abb4bb7b7611165324c507f"
+SPOTIFY_CLIENT_SECRET = "c2ae1e031fd84cf0b753bf977a43d712"
+
+async def get_spotify_token():
+    credentials = base64.b64encode(
+        f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}".encode()
+    ).decode()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            "https://accounts.spotify.com/api/token",
+            headers={"Authorization": f"Basic {credentials}"},
+            data={"grant_type": "client_credentials"}
+        )
+        return r.json().get("access_token")
 
 @app.get("/")
 def root():
@@ -40,6 +59,14 @@ def play():
 def pause():
     return music.pause()
 
+@app.post("/music/next")
+def next_track():
+    return music.next()
+
+@app.post("/music/prev")
+def prev_track():
+    return music.prev()
+
 @app.post("/bluetooth/discoverable")
 def bluetooth_discoverable():
     return bluetooth.make_discoverable()
@@ -51,15 +78,32 @@ def bluetooth_disconnect():
 @app.get("/music/cover")
 async def get_cover():
     try:
-        import os
-        result = subprocess.run(
-            ["playerctl", "metadata", "mpris:artUrl"],
-            capture_output=True, text=True, timeout=3,
-            env={**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
-        )
-        url = result.stdout.strip()
-        if url:
-            return {"cover": url}
-        return {"cover": None}
+        bt_status = bluetooth.get_status()
+        artist = bt_status.get("artist", "")
+        track = bt_status.get("track", "")
+
+        if not artist or not track:
+            return {"cover": None}
+
+        token = await get_spotify_token()
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://api.spotify.com/v1/search",
+                headers={"Authorization": f"Bearer {token}"},
+                params={
+                    "q": f"track:{track} artist:{artist}",
+                    "type": "track",
+                    "limit": 1
+                }
+            )
+            data = r.json()
+            items = data.get("tracks", {}).get("items", [])
+            if not items:
+                return {"cover": None}
+
+            cover = items[0]["album"]["images"][0]["url"]
+            return {"cover": cover}
+
     except Exception as e:
         return {"cover": None, "error": str(e)}
