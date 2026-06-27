@@ -2,25 +2,51 @@
 <html>
 <head>
     <title>AveoOS</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <div class="dashboard">
 
+<div class="top-bar">
+    <div id="time">00:00</div>
+    <div id="bt-status">Bluetooth: --</div>
+</div>
+
+<div class="screen">
+
+    <div class="page active" id="home">
         <h1>AveoOS</h1>
-
-        <div id="clock"></div>
-
-        <div class="card" id="bluetooth"></div>
-
-        <div class="card" id="music"></div>
-
-        <button onclick="play()">Play</button>
-        <button onclick="pause()">Pause</button>
-
+        <p>Status do sistema</p>
     </div>
 
-    <script src="app.js"></script>
+    <div class="page" id="music">
+
+        <div class="music-card">
+            <div id="track">--</div>
+            <div id="artist">--</div>
+        </div>
+
+        <div class="controls">
+            <button onclick="prev()">⏮</button>
+            <button onclick="playPause()">▶</button>
+        <button onclick="next()">⏭</button>
+    </div>
+
+</div>
+
+<div class="page" id="settings">
+    <h2>Settings</h2>
+    </div>
+
+</div>
+
+<div class="bottom-nav">
+    <button onclick="showPage('home')">HOME</button>
+    <button onclick="showPage('music')">MUSIC</button>
+    <button onclick="showPage('settings')">SETTINGS</button>
+</div>
+
+<script src="app.js"></script>
+
 </body>
 </html>
