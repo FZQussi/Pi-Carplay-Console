@@ -145,7 +145,7 @@ async def get_lyrics():
                 LRCLIB_URL,
                 headers=DEFAULT_HEADERS,
                 params={"artist_name": artist, "track_name": track},
-                timeout=5,
+                timeout=10,
             )
 
         logger.info("LRCLIB respondeu status=%s", resp.status_code)
@@ -166,4 +166,4 @@ async def get_lyrics():
 
     except Exception as e:
         logger.exception("Erro ao obter letra")
-        return {"synced": None, "plain": None, "error": str(e)}
+        return {"synced": None, "plain": None, "error": f"{type(e).__name__}: {e}"}
