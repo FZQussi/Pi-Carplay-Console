@@ -1,0 +1,59 @@
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active');
+    });
+
+    document.getElementById(page).classList.add('active');
+}
+
+/* relógio */
+function updateClock() {
+    const now = new Date();
+    document.getElementById("time").innerText =
+        now.getHours().toString().padStart(2,'0') + ":" +
+        now.getMinutes().toString().padStart(2,'0');
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+/* dados backend */
+async function loadStatus() {
+    const res = await fetch("/status");
+    const data = await res.json();
+
+    const bt = data.bluetooth;
+
+    // Barra de topo
+    document.getElementById("bt-status").innerHTML = bt.connected
+        ? `🔵 ${bt.device}`
+        : "⚫ Sem Bluetooth";
+
+    // Página de música
+    if (bt.playing) {
+        document.getElementById("track").innerHTML = `🎵 ${bt.track}`;
+        document.getElementById("artist").innerHTML = bt.artist;
+    } else {
+        document.getElementById("track").innerHTML = bt.connected ? "⏸ Em pausa" : "--";
+        document.getElementById("artist").innerHTML = "--";
+    }
+}
+setInterval(loadStatus, 2000);
+loadStatus();
+
+/* media controls */
+async function playPause() {
+    await fetch("http://127.0.0.1:8000/music/play", { method: "POST" });
+}
+
+async function next() {
+    console.log("next track");
+}
+
+async function prev() {
+    console.log("prev track");
+}
+async function makeDiscoverable() {
+    await fetch("http://127.0.0.1:8000/bluetooth/discoverable", { method: "POST" });
+    alert("Bluetooth visível — liga o teu telemóvel!");
+}

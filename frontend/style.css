@@ -5,13 +5,14 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
     background: #0a0a0a;
     color: white;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    user-select: none;
 }
 
 /* Barra de topo */
@@ -19,135 +20,234 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 24px;
-    background: #111;
-    border-bottom: 1px solid #222;
+    padding: 14px 28px;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #1a1a1a;
+    z-index: 10;
 }
 
 #time {
-    font-size: 1.4rem;
-    font-weight: bold;
+    font-size: 1.3rem;
+    font-weight: 600;
     letter-spacing: 2px;
 }
 
 #bt-status {
-    font-size: 0.9rem;
-    color: #aaa;
+    font-size: 0.85rem;
+    color: #888;
 }
 
-/* Área principal */
+/* Screens */
 .screen {
     flex: 1;
     overflow: hidden;
-    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
-.page {
-    display: none;
+.hidden {
+    display: none !important;
+}
+
+/* App grid (home) */
+.app-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    padding: 48px;
+    justify-content: center;
+    align-items: center;
     height: 100%;
-    padding: 32px 24px;
 }
 
-.page.active {
+.app-icon {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.app-icon:active {
+    transform: scale(0.93);
+}
+
+.app-icon-img {
+    width: 90px;
+    height: 90px;
+    background: #1a1a1a;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    font-size: 2.4rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid #2a2a2a;
 }
 
-/* Home */
-#home h1 {
-    font-size: 3rem;
-    font-weight: bold;
-    letter-spacing: 4px;
+.app-icon-label {
+    font-size: 0.85rem;
+    color: #ccc;
+}
+
+/* Página de música */
+.music-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 32px;
+    height: 100%;
+    gap: 12px;
+}
+
+.back-btn {
+    align-self: flex-start;
+    background: none;
+    border: none;
     color: #1db954;
-    margin-bottom: 12px;
-}
-
-#home p {
-    color: #666;
     font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 0;
 }
 
-/* Música */
-.music-card {
+.album-art {
+    width: 180px;
+    height: 180px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    box-shadow: 0 8px 32px rgba(29,185,84,0.2);
+    border: 1px solid #2a2a2a;
+    margin: 8px 0;
+}
+
+.track-info {
     text-align: center;
-    margin-bottom: 40px;
 }
 
-#track {
-    font-size: 1.8rem;
-    font-weight: bold;
-    margin-bottom: 8px;
-    color: white;
+.track-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
 }
 
-#artist {
-    font-size: 1.2rem;
+.track-artist {
+    font-size: 1rem;
     color: #1db954;
+}
+
+/* Barra de progresso */
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #1db954;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s linear;
+}
+
+.progress-times {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.75rem;
+    color: #666;
 }
 
 /* Controlos */
 .controls {
     display: flex;
-    gap: 16px;
+    gap: 24px;
     align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
+    margin-top: 8px;
 }
 
-.controls button {
+.ctrl-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: white;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ctrl-btn:active {
+    transform: scale(0.92);
+    background: #222;
+}
+
+.play-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 1.6rem;
     background: #1db954;
     color: black;
     border: none;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 1.4rem;
-    cursor: pointer;
-    transition: background 0.2s;
 }
 
-.controls button:hover {
+.play-btn:active {
     background: #17a045;
 }
 
-.controls button:last-child {
-    border-radius: 12px;
-    width: auto;
-    padding: 0 20px;
-    font-size: 0.9rem;
+.bt-connect-btn {
+    background: none;
+    border: 1px solid #333;
+    color: #888;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 4px;
 }
 
-/* Settings */
-#settings h2 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
+.bt-connect-btn:hover {
+    border-color: #1db954;
     color: #1db954;
 }
 
-/* Navegação */
-.bottom-nav {
+/* Settings */
+.settings-page {
+    padding: 24px 32px;
     display: flex;
-    justify-content: space-around;
-    padding: 12px;
-    background: #111;
-    border-top: 1px solid #222;
+    flex-direction: column;
+    gap: 24px;
 }
 
-.bottom-nav button {
-    background: none;
-    border: none;
-    color: #666;
-    font-size: 0.85rem;
-    letter-spacing: 1px;
-    cursor: pointer;
-    padding: 8px 24px;
-    border-radius: 8px;
-    transition: all 0.2s;
+.settings-page h2 {
+    font-size: 1.6rem;
+    color: #1db954;
 }
 
-.bottom-nav button:hover {
-    color: white;
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
     background: #1a1a1a;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    font-size: 0.95rem;
+}
+
+.setting-item span:last-child {
+    color: #888;
 }

@@ -5,36 +5,64 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+
+<!-- Barra de topo -->
 <div class="top-bar">
     <div id="time">00:00</div>
-    <div id="bt-status">Bluetooth: --</div>
+    <div id="bt-status">⚫ Sem Bluetooth</div>
 </div>
-<div class="screen">
-    <div class="page active" id="home">
-        <h1>AveoOS</h1>
-        <p>Status do sistema</p>
+
+<!-- Menu principal -->
+<div class="screen" id="screen-home">
+    <div class="app-grid">
+        <div class="app-icon" onclick="showScreen('screen-music')">
+            <div class="app-icon-img">🎵</div>
+            <div class="app-icon-label">Música</div>
+        </div>
+        <div class="app-icon" onclick="showScreen('screen-settings')">
+            <div class="app-icon-img">⚙️</div>
+            <div class="app-icon-label">Definições</div>
+        </div>
     </div>
-    <div class="page" id="music">
-        <div class="music-card">
-            <div id="track">--</div>
-            <div id="artist">--</div>
+</div>
+
+<!-- Página de música -->
+<div class="screen hidden" id="screen-music">
+    <div class="music-page">
+        <button class="back-btn" onclick="showScreen('screen-home')">← Voltar</button>
+        <div class="album-art" id="album-art">🎵</div>
+        <div class="track-info">
+            <div class="track-name" id="track">--</div>
+            <div class="track-artist" id="artist">--</div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-times">
+            <span id="time-current">0:00</span>
+            <span id="time-total">0:00</span>
         </div>
         <div class="controls">
-            <button onclick="prev()">⏮</button>
-            <button onclick="playPause()">▶</button>
-            <button onclick="next()">⏭</button>
-            <button onclick="makeDiscoverable()">Ligar Bluetooth</button>
+            <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
+            <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+            <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
+        </div>
+        <button class="bt-connect-btn" onclick="makeDiscoverable()">🔵 Ligar Bluetooth</button>
+    </div>
+</div>
+
+<!-- Página de definições -->
+<div class="screen hidden" id="screen-settings">
+    <div class="settings-page">
+        <button class="back-btn" onclick="showScreen('screen-home')">← Voltar</button>
+        <h2>Definições</h2>
+        <div class="setting-item">
+            <span>Dispositivo Bluetooth</span>
+            <span id="bt-device-name">--</span>
         </div>
     </div>
-    <div class="page" id="settings">
-        <h2>Settings</h2>
-    </div>
 </div>
-<div class="bottom-nav">
-    <button onclick="showPage('home')">HOME</button>
-    <button onclick="showPage('music')">MUSIC</button>
-    <button onclick="showPage('settings')">SETTINGS</button>
-</div>
+
 <script src="/static/app.js"></script>
 </body>
 </html>
