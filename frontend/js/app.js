@@ -37,6 +37,86 @@ function generateGradient(text) {
     return `linear-gradient(135deg, hsl(${h1},60%,25%), hsl(${h2},60%,15%))`;
 }
 
+// Letras
+let lyricsLines = [];   // [{ time: segundos, text: "..." }, ...] (vazio se não sincronizado)
+let currentLyricIndex = -1;
+
+function parseLRC(lrc) {
+    const lines = [];
+    const regex = /\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\]\s*(.*)/;
+    lrc.split("\n").forEach(line => {
+        const match = line.match(regex);
+        if (match) {
+            const minutes = parseInt(match[1], 10);
+            const seconds = parseFloat(match[2]);
+            const text = match[3].trim();
+            if (text) lines.push({ time: minutes * 60 + seconds, text });
+        }
+    });
+    return lines;
+}
+
+function renderLyricsPlaceholder(msg) {
+    const container = document.getElementById("lyrics-container");
+    if (container) container.innerHTML = `<div class="lyrics-line">${msg}</div>`;
+}
+
+async function loadLyrics() {
+    lyricsLines = [];
+    currentLyricIndex = -1;
+    renderLyricsPlaceholder("🎤 A procurar letra...");
+
+    try {
+        const res = await fetch("/music/lyrics");
+        const data = await res.json();
+        const container = document.getElementById("lyrics-container");
+        if (!container) return;
+
+        if (data.synced) {
+            lyricsLines = parseLRC(data.synced);
+            container.innerHTML = lyricsLines
+                .map((l, i) => `<div class="lyrics-line" data-index="${i}">${l.text}</div>`)
+                .join("");
+        } else if (data.plain) {
+            container.innerHTML = data.plain
+                .split("\n")
+                .map(line => `<div class="lyrics-line">${line}</div>`)
+                .join("");
+        } else {
+            renderLyricsPlaceholder("🎤 Letra não disponível");
+        }
+    } catch (e) {
+        renderLyricsPlaceholder("🎤 Letra não disponível");
+    }
+}
+
+function updateActiveLyric() {
+    if (lyricsLines.length === 0) return;
+
+    let newIndex = -1;
+    for (let i = 0; i < lyricsLines.length; i++) {
+        if (trackPosition >= lyricsLines[i].time) newIndex = i;
+        else break;
+    }
+
+    if (newIndex !== currentLyricIndex) {
+        const container = document.getElementById("lyrics-container");
+        if (!container) return;
+
+        const prev = container.querySelector(".lyrics-line.active");
+        if (prev) prev.classList.remove("active");
+
+        if (newIndex >= 0) {
+            const current = container.querySelector(`.lyrics-line[data-index="${newIndex}"]`);
+            if (current) {
+                current.classList.add("active");
+                current.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }
+        currentLyricIndex = newIndex;
+    }
+}
+
 async function loadStatus() {
     try {
         const res = await fetch("/status");
@@ -74,6 +154,9 @@ async function loadStatus() {
                             albumArt.innerHTML = `<img src="${data.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
                         }
                     });
+
+                // Vai buscar a letra (LRCLIB)
+                loadLyrics();
             }
         } else {
             document.getElementById("track").innerText = bt.connected ? "Em pausa" : "--";
@@ -91,15 +174,11 @@ async function loadStatus() {
 setInterval(loadStatus, 2000);
 loadStatus();
 
-// Progresso
+// Progresso (mantido para sincronizar a letra com o tempo da música)
 setInterval(() => {
     if (isPlaying) {
         trackPosition = Math.min(trackPosition + 1, trackDuration > 0 ? trackDuration / 1000000 : 300);
-        const total = trackDuration > 0 ? trackDuration / 1000000 : 0;
-        const pct = total > 0 ? (trackPosition / total) * 100 : 0;
-        document.getElementById("progress-bar").style.width = pct + "%";
-        document.getElementById("time-current").innerText = formatTime(trackPosition * 1000000);
-        document.getElementById("time-total").innerText = formatTime(trackDuration);
+        updateActiveLyric();
     }
 }, 1000);
 

@@ -6,9 +6,10 @@ Endpoints:
 - POST /music/next     — skip
 - POST /music/prev     — previous
 - GET  /music/cover    — cover URL do Spotify (procura track+artist)
+- GET  /music/lyrics   — letra (LRCLIB; sincronizada quando disponível)
 
-A capa usa a API pública do Spotify. É a única parte do AveoOS V1 que
-*precisa* de internet; o resto funciona offline.
+A capa e a letra usam APIs públicas (Spotify e LRCLIB). É a única
+parte do AveoOS V1 que *precisa* de internet; o resto funciona offline.
 """
 
 from __future__ import annotations
@@ -27,6 +28,11 @@ from backend.core.config import (
 from backend.services import get_bluetooth, get_music
 
 router = APIRouter(prefix="/music", tags=["music"])
+
+# LRCLIB é gratuito e não exige API key/registo. Devolve letra simples
+# (plainLyrics) e, quando existe, letra sincronizada por tempo no
+# formato LRC (syncedLyrics), ex.: "[00:12.34]Texto da linha".
+LRCLIB_URL = "https://lrclib.net/api/get"
 
 
 @router.post("/play")
@@ -94,3 +100,42 @@ async def get_cover():
 
     except Exception as e:
         return {"cover": None, "error": str(e)}
+
+
+@router.get("/lyrics")
+async def get_lyrics():
+    """Procura a letra na LRCLIB a partir do artist/track atual.
+
+    Lê o estado via `BluetoothService`, pela mesma razão do
+    `/music/cover`: é onde o `playerctl` reporta track+artist.
+
+    Devolve `synced` (formato LRC, com timestamps por linha) quando
+    a LRCLIB tem essa versão disponível, caso contrário só `plain`
+    (texto corrido, sem timestamps). Se não encontrar nada, ambos
+    vêm `None` e o frontend mostra um placeholder.
+    """
+    try:
+        bt_status = get_bluetooth().get_status()
+        artist = bt_status.get("artist", "")
+        track = bt_status.get("track", "")
+
+        if not artist or not track:
+            return {"synced": None, "plain": None}
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                LRCLIB_URL,
+                params={"artist_name": artist, "track_name": track},
+            )
+
+        if resp.status_code != 200:
+            return {"synced": None, "plain": None}
+
+        data = resp.json()
+        return {
+            "synced": data.get("syncedLyrics") or None,
+            "plain": data.get("plainLyrics") or None,
+        }
+
+    except Exception as e:
+        return {"synced": None, "plain": None, "error": str(e)}

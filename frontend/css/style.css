@@ -251,3 +251,20 @@ body {
 .setting-item span:last-child {
     color: #888;
 }
+.lyrics-container {
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: center;
+    padding: 10px;
+    scrollbar-width: none;
+}
+.lyrics-line {
+    opacity: 0.4;
+    padding: 4px 0;
+    transition: opacity 0.3s, transform 0.3s;
+}
+.lyrics-line.active {
+    opacity: 1;
+    font-weight: bold;
+    transform: scale(1.05);
+}
