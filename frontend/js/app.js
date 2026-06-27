@@ -203,7 +203,7 @@ loadStatus();
 // Progresso (mantido para sincronizar a letra com o tempo da música)
 setInterval(() => {
     if (isPlaying) {
-        trackPosition = Math.min(trackPosition + 1, trackDuration > 0 ? trackDuration / 1000000 : 300);
+        trackPosition = Math.min(trackPosition + 3, trackDuration > 0 ? trackDuration / 1000000 : 300);
         updateActiveLyric();
     }
 }, 1000);

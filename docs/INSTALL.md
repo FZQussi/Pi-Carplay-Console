@@ -225,6 +225,8 @@ exec chromium \
     --autoplay-policy=no-user-gesture-required
 ```
 
+
+
 Tornar executável e configurar autostart. Para V1 com auto-login CLI, usar `~/.bash_profile` para chamar `startx` que por sua vez executa o script kiosk. Detalhes XFCE/LXDE autostart dependem do setup — ver `DEVELOPMENT.md` se necessário.
 
 ---
