@@ -15,6 +15,7 @@ internet; o resto funciona offline.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import httpx
@@ -74,7 +75,11 @@ async def get_cover():
     do estado Bluetooth.
     """
     try:
-        bt_status = get_bluetooth().get_status()
+        # get_status() faz subprocess.run() (bluetoothctl/playerctl) — é
+        # bloqueante. Corrê-lo numa thread evita travar o event loop
+        # inteiro, o que atrasava/cortava outros pedidos em curso
+        # (ex.: o /music/lyrics, causando ReadTimeout).
+        bt_status = await asyncio.to_thread(get_bluetooth().get_status)
         artist = bt_status.get("artist", "")
         track = bt_status.get("track", "")
 
@@ -130,7 +135,9 @@ async def get_lyrics():
     vêm `None` e o frontend mostra um placeholder.
     """
     try:
-        bt_status = get_bluetooth().get_status()
+        # Mesma razão do /music/cover: corre numa thread para não
+        # travar o event loop com a chamada bloqueante a bluetoothctl/playerctl.
+        bt_status = await asyncio.to_thread(get_bluetooth().get_status)
         artist = bt_status.get("artist", "")
         track = bt_status.get("track", "")
 
