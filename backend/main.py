@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from backend.services.music import MusicService
 from backend.services.bluetooth import BluetoothService
@@ -16,6 +18,12 @@ app.add_middleware(
 
 music = MusicService()
 bluetooth = BluetoothService()
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("frontend/index.html")
 
 @app.get("/status")
 def status():
