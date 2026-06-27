@@ -31,3 +31,11 @@ def play():
 @app.post("/music/pause")
 def pause():
     return music.pause()
+
+@app.post("/bluetooth/discoverable")
+def bluetooth_discoverable():
+    return bluetooth.make_discoverable()
+
+@app.post("/bluetooth/disconnect")
+def bluetooth_disconnect():
+    return bluetooth.disconnect()

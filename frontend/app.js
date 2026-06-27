@@ -44,3 +44,7 @@ async function next() {
 async function prev() {
     console.log("prev track");
 }
+async function makeDiscoverable() {
+    await fetch("http://127.0.0.1:8000/bluetooth/discoverable", { method: "POST" });
+    alert("Bluetooth visível — liga o teu telemóvel!");
+}
