@@ -25,19 +25,24 @@ class BluetoothService:
             track = None
             artist = None
             playing = False
+            duration = 0
+            position = 0
 
             if connected:
                 meta = subprocess.run(
-                    ["playerctl", "metadata", "--format", "{{status}}|{{artist}}|{{title}}"],
+                    ["playerctl", "metadata", "--format",
+                     "{{status}}|{{artist}}|{{title}}|{{mpris:length}}|{{position}}"],
                     capture_output=True, text=True, timeout=3,
                     env={**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
                 )
                 if meta.returncode == 0:
                     parts = meta.stdout.strip().split("|")
-                    if len(parts) == 3:
+                    if len(parts) == 5:
                         playing = parts[0] == "Playing"
                         artist = _clean_artist(parts[1])
                         track = parts[2]
+                        duration = int(parts[3]) if parts[3].strip().lstrip("-").isdigit() else 0
+                        position = int(parts[4]) if parts[4].strip().lstrip("-").isdigit() else 0
 
             return {
                 "connected": connected,
@@ -45,6 +50,8 @@ class BluetoothService:
                 "playing": playing,
                 "track": track,
                 "artist": artist,
+                "duration": duration,   # microssegundos
+                "position": position,   # microssegundos
             }
         except Exception as e:
             return {"connected": False, "device": None, "playing": False, "error": str(e)}

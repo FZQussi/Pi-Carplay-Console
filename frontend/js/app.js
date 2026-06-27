@@ -16,15 +16,17 @@ updateClock();
 
 // Estado
 let isPlaying = false;
-let trackPosition = 0;
-let trackDuration = 0;
+let trackPosition = 0;      // segundos (float)
+let trackDuration = 0;      // segundos (float)
 let lastTrack = null;
+// Momento (Date.now()) em que trackPosition foi actualizado pelo servidor,
+// para interpolar correctamente entre polls.
+let positionTimestamp = 0;
 
-function formatTime(microseconds) {
-    const seconds = Math.floor(microseconds / 1000000);
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2,'0')}`;
+function formatTime(seconds) {
+    const s = Math.floor(seconds);
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2,'0')}`;
 }
 
 // Placeholder da capa: varia por música (cor + emoji), em vez de ser
@@ -140,6 +142,13 @@ function updateActiveLyric() {
     }
 }
 
+// Devolve a posição actual interpolada entre polls (em segundos).
+function currentPosition() {
+    if (!isPlaying || positionTimestamp === 0) return trackPosition;
+    const elapsed = (Date.now() - positionTimestamp) / 1000;
+    return Math.min(trackPosition + elapsed, trackDuration > 0 ? trackDuration : trackPosition + elapsed);
+}
+
 async function loadStatus() {
     try {
         const res = await fetch("/status");
@@ -160,10 +169,21 @@ async function loadStatus() {
             document.getElementById("play-btn").innerText = "⏸";
             isPlaying = true;
 
+            // Actualiza posição com o valor real do servidor (microssegundos → segundos).
+            // Se o servidor devolver 0 (telemóvel não suporta AVRCP position), mantém
+            // a estimativa local para não saltar para o início.
+            const serverPosition = (bt.position || 0) / 1_000_000;
+            if (serverPosition > 0) {
+                trackPosition = serverPosition;
+            }
+            trackDuration = (bt.duration || 0) / 1_000_000;
+            positionTimestamp = Date.now();
+
             if (bt.track && bt.track !== lastTrack) {
                 lastTrack = bt.track;
-                trackPosition = 0;
-                trackDuration = bt.duration || 0;
+                // Música nova: reset da posição independentemente do servidor.
+                trackPosition = serverPosition;
+                positionTimestamp = Date.now();
 
                 // Placeholder enquanto não há capa: cor + emoji variam por música
                 const hash = hashText(bt.track + bt.artist);
@@ -191,6 +211,7 @@ async function loadStatus() {
             albumArt.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
             albumArt.innerHTML = "🎵";
             isPlaying = false;
+            positionTimestamp = 0;
         }
     } catch (e) {
         console.error("Erro ao carregar status:", e);
@@ -200,10 +221,12 @@ async function loadStatus() {
 setInterval(loadStatus, 2000);
 loadStatus();
 
-// Progresso (mantido para sincronizar a letra com o tempo da música)
+// Ticker a cada segundo: usa a posição interpolada para actualizar a letra.
+// Não incrementa um contador fixo — usa o tempo real decorrido desde o
+// último poll, por isso não acumula drift entre actualizações do servidor.
 setInterval(() => {
     if (isPlaying) {
-        trackPosition = Math.min(trackPosition + 1.2, trackDuration > 0 ? trackDuration / 1000000 : 300);
+        trackPosition = currentPosition();
         updateActiveLyric();
     }
 }, 1000);
@@ -217,8 +240,10 @@ async function togglePlay() {
 
     if (isPlaying) {
         await fetch("/music/play", { method: "POST" });
+        positionTimestamp = Date.now();
     } else {
         await fetch("/music/pause", { method: "POST" });
+        positionTimestamp = 0;
     }
 
     // Confirma com o estado real passado algum tempo, para dar
@@ -229,12 +254,16 @@ async function togglePlay() {
 async function nextTrack() {
     await fetch("/music/next", { method: "POST" });
     trackPosition = 0;
+    positionTimestamp = 0;
+    lastTrack = null;   // força reload da capa e letra na próxima música
     loadStatus();
 }
 
 async function prevTrack() {
     await fetch("/music/prev", { method: "POST" });
     trackPosition = 0;
+    positionTimestamp = 0;
+    lastTrack = null;   // força reload da capa e letra na próxima música
     loadStatus();
 }
 
