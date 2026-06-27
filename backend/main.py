@@ -58,22 +58,30 @@ async def get_cover():
         if not artist or not track:
             return {"cover": None}
 
-        # Procura na MusicBrainz
-        search_url = f"https://musicbrainz.org/ws/2/recording/?query=recording:{track}+artist:{artist}&fmt=json&limit=1"
         async with httpx.AsyncClient() as client:
-            r = await client.get(search_url, headers={"User-Agent": "AveoOS/1.0"})
+            # Pesquisa mais precisa por artista e título exatos
+            search_url = (
+                f"https://musicbrainz.org/ws/2/release/?"
+                f"query=artist:\"{artist}\" AND release:\"{track}\"&fmt=json&limit=5"
+            )
+            r = await client.get(search_url, headers={"User-Agent": "AveoOS/1.0 ( test@test.com )"})
             data = r.json()
 
-            recordings = data.get("recordings", [])
-            if not recordings:
+            releases = data.get("releases", [])
+            if not releases:
                 return {"cover": None}
 
-            release_id = recordings[0].get("releases", [{}])[0].get("id")
-            if not release_id:
-                return {"cover": None}
+            # Tenta cada release até encontrar uma com capa
+            for release in releases:
+                release_id = release.get("id")
+                if not release_id:
+                    continue
+                cover_url = f"https://coverartarchive.org/release/{release_id}/front"
+                check = await client.get(cover_url, follow_redirects=False)
+                if check.status_code in (200, 307):
+                    return {"cover": str(check.headers.get("location", cover_url))}
 
-            cover_url = f"https://coverartarchive.org/release/{release_id}/front"
-            return {"cover": cover_url}
+            return {"cover": None}
 
     except Exception as e:
         return {"cover": None, "error": str(e)}
