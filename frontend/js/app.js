@@ -27,14 +27,27 @@ function formatTime(microseconds) {
     return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
-function generateGradient(text) {
+// Placeholder da capa: varia por música (cor + emoji), em vez de ser
+// sempre igual quando não há capa disponível.
+const PLACEHOLDER_EMOJIS = ["🎵", "🎶", "🎷", "🎸", "🎹", "🎺", "🥁", "🪕", "🎻", "📻"];
+
+function hashText(text) {
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
         hash = text.charCodeAt(i) + ((hash << 5) - hash);
     }
+    return hash;
+}
+
+function generateGradient(hash) {
     const h1 = Math.abs(hash % 360);
     const h2 = (h1 + 40) % 360;
     return `linear-gradient(135deg, hsl(${h1},60%,25%), hsl(${h2},60%,15%))`;
+}
+
+function pickPlaceholderEmoji(hash) {
+    const index = Math.abs(hash) % PLACEHOLDER_EMOJIS.length;
+    return PLACEHOLDER_EMOJIS[index];
 }
 
 // Letras
@@ -68,7 +81,15 @@ async function loadLyrics() {
 
     try {
         const res = await fetch("/music/lyrics");
+        if (!res.ok) {
+            console.error("Erro HTTP ao obter letra:", res.status, res.statusText);
+            renderLyricsPlaceholder("🎤 Letra não disponível");
+            return;
+        }
+
         const data = await res.json();
+        if (data.error) console.error("Erro do servidor ao obter letra:", data.error);
+
         const container = document.getElementById("lyrics-container");
         if (!container) return;
 
@@ -86,6 +107,7 @@ async function loadLyrics() {
             renderLyricsPlaceholder("🎤 Letra não disponível");
         }
     } catch (e) {
+        console.error("Erro ao obter letra (fetch/parse):", e);
         renderLyricsPlaceholder("🎤 Letra não disponível");
     }
 }
@@ -142,18 +164,21 @@ async function loadStatus() {
                 trackPosition = 0;
                 trackDuration = bt.duration || 0;
 
-                // Gradiente enquanto carrega
-                albumArt.style.background = generateGradient(bt.track + bt.artist);
-                albumArt.innerHTML = "🎵";
+                // Placeholder enquanto não há capa: cor + emoji variam por música
+                const hash = hashText(bt.track + bt.artist);
+                albumArt.style.background = generateGradient(hash);
+                albumArt.innerHTML = pickPlaceholderEmoji(hash);
 
-                // Vai buscar capa ao Spotify
+                // Vai buscar capa (iTunes Search API)
                 fetch("/music/cover")
                     .then(r => r.json())
                     .then(data => {
                         if (data.cover) {
                             albumArt.innerHTML = `<img src="${data.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:20px;">`;
                         }
-                    });
+                        if (data.error) console.error("Erro ao obter capa:", data.error);
+                    })
+                    .catch(e => console.error("Erro ao obter capa (fetch):", e));
 
                 // Vai buscar a letra (LRCLIB)
                 loadLyrics();
