@@ -119,6 +119,7 @@ Documentação detalhada da estrutura: [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 |-----|----------|
 | [`docs/GOALS.md`](docs/GOALS.md) | Visão, objetivos V1 (funcionais e não-funcionais), filosofia de desenvolvimento |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Sprints V1 e roadmap V2+ (navegação, câmara, OBD2, climatização) |
+| [`docs/FEATURE-PLAN.md`](docs/FEATURE-PLAN.md) | Plano de features pós-V1: sprints 6–20 com objetivos e metas por fase |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitetura técnica: módulos, API REST, comunicação, princípios |
 | [`docs/INSTALL.md`](docs/INSTALL.md) | Instalação no Raspberry Pi: SO, deps, kiosk mode, auto-start, permissões |
 | [`docs/HARDWARE.md`](docs/HARDWARE.md) | Componentes, wiring, pinout, considerações para o carro |

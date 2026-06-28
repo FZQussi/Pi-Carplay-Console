@@ -85,7 +85,9 @@ Quando o cenário definido em `GOALS.md` ("o utilizador entra, liga ignição, m
 
 ## V2 — Expansões planeadas
 
-> Ordem aproximada por prioridade. Sujeita a ajuste consoante uso real.
+> Ordem aproximada por prioridade. Sujeita a ajuste consoante uso real. O plano
+> detalhado pós-V1, com sprints numerados (6–20), objetivos e metas de sucesso
+> por sprint, vive em [`FEATURE-PLAN.md`](FEATURE-PLAN.md).
 
 ### V2.1 — Navegação offline
 

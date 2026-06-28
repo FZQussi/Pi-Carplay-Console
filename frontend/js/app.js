@@ -145,10 +145,8 @@ function updateActiveLyric() {
     }
 }
 
-async function loadStatus() {
+function applyStatus(data) {
     try {
-        const res = await fetch("/status");
-        const data = await res.json();
         const bt = data.bluetooth;
 
         document.getElementById("bt-status").innerHTML = bt.connected
@@ -209,15 +207,65 @@ async function loadStatus() {
             isPlaying = false;
         }
     } catch (e) {
+        console.error("Erro ao aplicar status:", e);
+    }
+}
+
+// Fetch pontual de /status — usado como fallback e após comandos.
+async function fetchStatus() {
+    try {
+        const res = await fetch("/status");
+        applyStatus(await res.json());
+    } catch (e) {
         console.error("Erro ao carregar status:", e);
     }
 }
 
-setInterval(loadStatus, 2000);
-loadStatus();
+// --- Tempo real via WebSocket, com fallback para polling -------------------
+// O caminho normal é o WS: o backend faz push do estado sempre que muda.
+// Se o WS cair, ligamos um polling de 2s e tentamos reconectar; quando o
+// WS volta, o polling desliga-se para não duplicar carga nos subprocessos.
+let ws = null;
+let pollTimer = null;
+
+function startPolling() {
+    if (pollTimer) return;
+    fetchStatus();
+    pollTimer = setInterval(fetchStatus, 2000);
+}
+
+function stopPolling() {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+}
+
+function connectWS() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+    ws.onmessage = (ev) => {
+        stopPolling();                 // WS vivo: dispensa o polling
+        try {
+            applyStatus(JSON.parse(ev.data));
+        } catch (e) {
+            console.error("Erro a processar mensagem WS:", e);
+        }
+    };
+
+    ws.onclose = () => {
+        startPolling();                // fallback enquanto o WS está em baixo
+        setTimeout(connectWS, 3000);   // tenta reconectar
+    };
+
+    ws.onerror = () => ws.close();     // força o caminho de onclose
+}
+
+connectWS();
 
 // Ticker: avança trackPosition +1s por segundo de forma simples e linear.
-// O loadStatus corrige o valor se o servidor devolver posição real (AVRCP).
+// O applyStatus corrige o valor se o servidor devolver posição real (AVRCP).
 // Sem interpolação de timestamp — mais previsível e sem resets inesperados.
 setInterval(() => {
     if (isPlaying) {
@@ -240,21 +288,21 @@ async function togglePlay() {
         await fetch("/music/pause", { method: "POST" });
     }
 
-    setTimeout(loadStatus, 800);
+    setTimeout(fetchStatus, 800);
 }
 
 async function nextTrack() {
     await fetch("/music/next", { method: "POST" });
     trackPosition = 0;
     lastTrack = null;
-    loadStatus();
+    fetchStatus();
 }
 
 async function prevTrack() {
     await fetch("/music/prev", { method: "POST" });
     trackPosition = 0;
     lastTrack = null;
-    loadStatus();
+    fetchStatus();
 }
 
 async function makeDiscoverable() {
