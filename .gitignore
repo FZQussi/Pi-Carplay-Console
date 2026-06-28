@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Ambiente virtual
+.venv/
+venv/
+
+# Cache e config do AveoOS em runtime (ficam no home do utilizador, mas
+# por segurança se alguém os criar dentro do repo)
+.cache/
+.config/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Segredos
+.env

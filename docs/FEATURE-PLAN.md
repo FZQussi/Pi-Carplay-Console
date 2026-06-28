@@ -138,17 +138,24 @@ toca, sem tocar em nada, em <10s após o boot.
 
 ---
 
-## Sprint 11 — Capa, cache e offline 🟢
+## Sprint 11 — Capa, cache e offline 🟢 ✅
 
 **Objetivo:** capa instantânea e sistema 100% utilizável sem internet.
 
 **Meta de sucesso:** segunda vez que toca uma música, a capa aparece sem rede;
 nenhuma feature core depende de internet.
 
-- [ ] Cache local de capas em disco (`~/.cache/aveoos/covers`), chave artist+track
-- [ ] Cache local de letras (LRCLIB) com TTL
-- [ ] Fallback gracioso offline (placeholder de gradiente já existe — manter)
-- [ ] Limpeza/limite de tamanho da cache (LRU)
+- [x] Cache local de capas em disco (`~/.cache/aveoos/covers`), chave artist+track
+      normalizada; o backend **descarrega os bytes** e serve-os via
+      `/music/cover/img` (deixa de depender do CDN da Apple)
+- [x] Cache local de letras (`~/.cache/aveoos/lyrics`) em JSON, com TTL de 30 dias
+- [x] Fallback gracioso offline (placeholder de gradiente + nota SVG mantido)
+- [x] Limite de tamanho com poda LRU por mtime (300 capas / 500 letras)
+- [x] Helper reutilizável em `backend/core/cache.py`
+
+> Verificado com as APIs reais: capa de 89 KB cacheada; com a rede sabotada,
+> o 2.º pedido serviu capa e letra do disco. O frontend não mudou — a URL da
+> capa passou a ser local.
 
 **Dependências:** nenhuma.
 
@@ -170,18 +177,20 @@ trocar de fonte de áudio sem reiniciar nada.
 
 ---
 
-## Sprint 13 — UX OEM (tema, toque, persistência) 🟢
+## Sprint 13 — UX OEM (tema, toque, persistência) 🟢 ✅
 
 **Objetivo:** que pareça e responda como um sistema de fábrica premium.
 
 **Meta de sucesso:** modo noturno automático ao anoitecer; alvos de toque
 confortáveis a conduzir; definições sobrevivem a reboot.
 
-- [ ] Tema dia/noite automático por hora (e por sensor de luz no futuro)
-- [ ] Alvos de toque maiores + transições suaves entre ecrãs
-- [ ] Grelha de início personalizável (ordem/visibilidade dos ícones)
-- [ ] Persistência de definições (JSON ou SQLite em `~/.config/aveoos`)
-- [ ] Splash de arranque a condizer com o tema
+- [x] Tema dia/noite por variáveis CSS; modo `auto` (dia 7h–19h), `dia` ou
+      `noite`, reavaliado a cada minuto para virar à hora certa
+- [x] Seletor de tema nas Definições + transições suaves de cor
+- [x] Persistência de definições em `~/.config/aveoos/settings.json`
+      (`SettingsService` + `GET/PUT /settings` validado por Pydantic)
+- [x] Splash de arranque a condizer com o tema (esconde-se no 1.º estado)
+- [ ] Grelha de início personalizável — adiado (só há 2 ícones; YAGNI por agora)
 
 **Dependências:** nenhuma.
 
@@ -271,17 +280,23 @@ uma atualização falhada.
 
 ---
 
-## Sprint 20 — Qualidade de engenharia 🟢
+## Sprint 20 — Qualidade de engenharia 🟢 ✅
 
 **Objetivo:** base de código testável, segura e de confiança.
 
 **Meta de sucesso:** suíte de testes verde em CI; zero segredos no repositório.
 
-- [ ] Testes pytest com `subprocess` mockado (a arquitetura já foi desenhada para isto)
-- [ ] Cobertura mínima dos serviços (`bluetooth`, `music`, `power`, `system`)
-- [ ] CI (GitHub Actions) a correr lint + testes
-- [ ] Remover segredos mortos do Spotify de `config.py`; migrar config para `.env`
-- [ ] Validação de payloads com Pydantic nos endpoints que recebem input
+- [x] Testes pytest com `subprocess`/sysfs mockado (28 testes; fixture isola
+      cache/definições em tmp)
+- [x] Cobertura dos serviços testáveis sem hardware: `system`, `music`,
+      `settings`, `cache` + endpoints (TestClient)
+- [x] CI (GitHub Actions) a correr `pytest` em cada push/PR
+- [x] Remover segredos do Spotify de `config.py` (estavam expostos — **revogar
+      no painel do Spotify**); `.env` adicionado ao `.gitignore`
+- [x] Validação de input com Pydantic: `Literal` no tema, `Query(ge/le)` no
+      volume e seek
+- [x] Higiene do repo: `.gitignore` + `__pycache__` deixou de ser versionado;
+      `requirements-dev.txt`
 
 ---
 
