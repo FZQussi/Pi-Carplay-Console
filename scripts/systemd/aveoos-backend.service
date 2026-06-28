@@ -1,0 +1,27 @@
+# Unit systemd do backend AveoOS (Sprint 6).
+#
+# Instalar:
+#   sudo cp scripts/systemd/aveoos-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now aveoos-backend
+#
+# Watchdog de hardware (opcional, recomendado no carro): ativar o watchdog
+# do BCM2835 em /etc/systemd/system.conf (RuntimeWatchdogSec=15) para que o
+# Pi reinicie sozinho se o sistema pendurar. O Restart=on-failure abaixo
+# trata da recuperação do processo do backend.
+
+[Unit]
+Description=AveoOS backend (FastAPI)
+After=bluetooth.target network-online.target sound.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+User=aveo
+WorkingDirectory=/home/aveo/AveoOS
+ExecStart=/home/aveo/AveoOS/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

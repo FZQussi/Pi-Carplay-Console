@@ -37,7 +37,12 @@
 
 > Pré-requisito para qualquer uso a sério. Sem isto, o resto não importa.
 
-## Sprint 6 — Gestão de energia e watchdog 🔴 HW
+## Sprint 6 — Gestão de energia e watchdog 🔴 HW · ✅ código (verificar no Pi)
+
+> Implementado: `PowerService` com leitura GPIO (lazy `gpiod`), `Debouncer`
+> testado, monitor `power_monitor_loop` que faz shutdown seguro ao detetar
+> ACC OFF, `/power/status` + `/power/shutdown`, e `scripts/systemd/`. A
+> lógica de debounce está testada; o GPIO real precisa de hardware.
 
 **Objetivo:** o Pi liga com a ignição e desliga-se sem corromper o cartão.
 
@@ -97,7 +102,12 @@ antes de o sistema ficar instável.
 
 ---
 
-## Sprint 9 — Bluetooth robusto 🟡 HW
+## Sprint 9 — Bluetooth robusto 🟡 HW · ✅ código (verificar no Pi)
+
+> Implementado: MAC já não hardcoded (descoberta via `bluetoothctl devices
+> Connected`), DBus de sessão resolvido em runtime (`core/runtime.py`),
+> `list_devices`/`connect`/`forget` + UI nas Definições. Parsing testado;
+> pairing/auto-reconnect reais precisam de um telemóvel.
 
 **Objetivo:** qualquer telemóvel emparelha e religa sozinho; sem MAC hardcoded.
 
@@ -161,7 +171,12 @@ nenhuma feature core depende de internet.
 
 ---
 
-## Sprint 12 — Fontes de áudio e chamadas 🟡 HW
+## Sprint 12 — Fontes de áudio e chamadas 🟡 HW · ✅ parcial (verificar no Pi)
+
+> Implementado: abstração de fonte (bluetooth/aux/usb) com seletor na UI e
+> `/audio/source`; interface de estado de chamada `/audio/call`. A comutação
+> real do PulseAudio e o HFP (atender/caller ID) ficam marcados com TODO —
+> dependem do setup de áudio e de oFono/BlueZ com telemóvel.
 
 **Objetivo:** mais do que Bluetooth — AUX/USB e chamadas mãos-livres.
 
@@ -198,7 +213,11 @@ confortáveis a conduzir; definições sobrevivem a reboot.
 
 # Fase V3 — Integração no veículo
 
-## Sprint 14 — Câmara de marcha-atrás 🔴 HW
+## Sprint 14 — Câmara de marcha-atrás 🔴 HW · ✅ código (verificar no Pi)
+
+> Implementado: `CameraService` (lazy `picamera2`), stream MJPEG em
+> `/camera/stream` (503 sem câmara), trigger de marcha-atrás por GPIO e ecrã
+> de câmara. O vídeo real precisa de câmara + Pi.
 
 **Objetivo:** vídeo da câmara em ecrã cheio ao meter marcha-atrás.
 
@@ -212,7 +231,11 @@ linhas de guia, e volta ao ecrã anterior ao sair.
 
 ---
 
-## Sprint 15 — Dashboard OBD2 🔴 HW
+## Sprint 15 — Dashboard OBD2 🔴 HW · ✅ código (verificar no Pi)
+
+> Implementado: `OBDService` (lazy `obd`/ELM327), `/obd/status` (rpm, speed,
+> coolant, fuel) e ecrã dashboard com mostradores. Precisa de adaptador
+> ELM327 ligado ao carro.
 
 **Objetivo:** ler e mostrar dados do motor.
 
@@ -226,7 +249,11 @@ ecrã dedicado, estáveis em viagem.
 
 ---
 
-## Sprint 16 — Navegação offline 🔴 HW
+## Sprint 16 — Navegação offline 🔴 HW · ✅ parcial (verificar no Pi)
+
+> Implementado: `GPSService` (lazy `gpsd`), `/gps/position` e ecrã com
+> posição/velocidade. Os mapas offline (tiles mbtiles) são um asset à parte
+> e ficam por integrar — precisa de recetor GPS + tiles.
 
 **Objetivo:** navegar sem depender de dados móveis.
 
@@ -239,7 +266,11 @@ ecrã dedicado, estáveis em viagem.
 
 ---
 
-## Sprint 17 — Climatização IR 🔴 HW
+## Sprint 17 — Climatização IR 🔴 HW · ✅ código (verificar no Pi)
+
+> Implementado: `ClimateService` (aprender/enviar via `ir-ctl`),
+> `/climate/commands|send|learn` e ecrã com os comandos aprendidos. Precisa
+> de emissor/recetor IR no Pi.
 
 **Objetivo:** controlar o A/C a partir do ecrã.
 
@@ -253,7 +284,12 @@ ecrã dedicado, estáveis em viagem.
 
 # Fase V4 — Smart & manutenção
 
-## Sprint 18 — Assistente de voz 🔴
+## Sprint 18 — Assistente de voz 🔴 · ✅ parcial (intents testados)
+
+> Implementado: `parse_intent` (puro, testado) → ações nos serviços via
+> `/voice/command`; no frontend usa o reconhecimento do browser
+> (Web Speech API) em vez de modelos no servidor. Wake word + STT local
+> (Whisper/Vosk) ficam como dependência opcional/futura.
 
 **Objetivo:** comandos por voz mãos-livres.
 
@@ -267,7 +303,12 @@ sem latência incomodativa.
 
 ---
 
-## Sprint 19 — OTA & recuperação 🟡
+## Sprint 19 — OTA & recuperação 🟡 ✅
+
+> Implementado: `UpdateService` (`get_version` via git — testado e a
+> funcionar; `update` faz `git pull` + reinstala deps + reinicia o serviço),
+> `/system/version` + `/system/update`, e na UI mostra a versão e botão de
+> atualizar. O restart do serviço só acontece no Pi (systemd).
 
 **Objetivo:** atualizar e recuperar o sistema sem ligar um teclado.
 
