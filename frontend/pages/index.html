@@ -40,13 +40,30 @@
             <div class="track-name" id="track">--</div>
             <div class="track-artist" id="artist">--</div>
        </div>
-        <div class="lyrics-container" id="lyrics-container">
-            <div class="lyrics-line"><span data-icon="mic"></span> Letra não disponível</div>
-       </div>
+        <!-- Barra de progresso: toque salta para a posição (seek). -->
+        <div class="progress-container" id="progress-container" onclick="seekTo(event)">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+        <div class="progress-times">
+            <span id="time-current">0:00</span>
+            <span id="time-total">--:--</span>
+        </div>
         <div class="controls">
+            <button class="ctrl-btn ctrl-btn-sm" id="shuffle-btn" data-icon="shuffle" onclick="toggleShuffle()"></button>
             <button class="ctrl-btn" data-icon="prev" onclick="prevTrack()"></button>
             <button class="ctrl-btn play-btn" id="play-btn" data-icon="play" onclick="togglePlay()"></button>
             <button class="ctrl-btn" data-icon="next" onclick="nextTrack()"></button>
+            <button class="ctrl-btn ctrl-btn-sm" id="repeat-btn" data-icon="repeat" onclick="toggleRepeat()"></button>
+       </div>
+        <div class="volume-row">
+            <span data-icon="volume"></span>
+            <input type="range" min="0" max="100" value="50" id="volume-slider"
+                   class="volume-slider" oninput="setVolume(this.value)">
+        </div>
+        <div class="lyrics-container" id="lyrics-container">
+            <div class="lyrics-line"><span data-icon="mic"></span> Letra não disponível</div>
        </div>
         <button class="bt-connect-btn" onclick="makeDiscoverable()"><span data-icon="bluetooth"></span> Ligar Bluetooth</button>
    </div>

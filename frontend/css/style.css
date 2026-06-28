@@ -132,6 +132,10 @@ body {
     padding: 20px 32px;
     height: 100%;
     gap: 12px;
+    /* Com seek + volume + letra, no ecrã do carro (800×480) o conteúdo pode
+       passar a altura — permitir scroll evita que algo fique cortado. */
+    overflow-y: auto;
+    scrollbar-width: none;
 }
 
 .back-btn {
@@ -181,13 +185,20 @@ body {
 }
 
 /* Barra de progresso */
+/* Wrapper com padding vertical para dar um alvo de toque maior (seek),
+   sem engrossar a barra visível. */
+.progress-container {
+    width: 100%;
+    padding: 8px 0;
+    cursor: pointer;
+}
+
 .progress-bar-container {
     width: 100%;
     height: 4px;
     background: #2a2a2a;
     border-radius: 2px;
     overflow: hidden;
-    margin-top: 4px;
 }
 
 .progress-bar {
@@ -237,7 +248,7 @@ body {
 .play-btn {
     width: 70px;
     height: 70px;
-    font-size: 1.6rem;
+    font-size: 1.8rem;
     background: #1db954;
     color: black;
     border: none;
@@ -245,6 +256,35 @@ body {
 
 .play-btn:active {
     background: #17a045;
+}
+
+/* Botões secundários (shuffle/repeat): menores e apagados até ativos. */
+.ctrl-btn-sm {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    color: #888;
+}
+
+.ctrl-btn-sm.active {
+    color: #1db954;
+    border-color: #1db954;
+}
+
+/* Volume */
+.volume-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    color: #888;
+    font-size: 1.1rem;
+}
+
+.volume-slider {
+    flex: 1;
+    accent-color: #1db954;
+    cursor: pointer;
 }
 
 .bt-connect-btn {
@@ -293,7 +333,7 @@ body {
     color: #888;
 }
 .lyrics-container {
-    max-height: 200px;
+    max-height: 140px;
     overflow-y: auto;
     text-align: center;
     padding: 10px;

@@ -5,6 +5,11 @@ Endpoints:
 - POST /music/pause    — pause
 - POST /music/next     — skip
 - POST /music/prev     — previous
+- POST /music/seek     — saltar para posição (segundos)
+- GET  /music/controls — estado de volume/shuffle/loop
+- POST /music/volume   — definir volume (ALSA, 0-100)
+- POST /music/shuffle  — toggle shuffle
+- POST /music/repeat   — ciclar repeat (None/Track/Playlist)
 - GET  /music/cover    — cover via iTunes Search API (recebe artist+track)
 - GET  /music/lyrics   — letra (LRCLIB; recebe artist+track)
 
@@ -69,6 +74,33 @@ def next_track():
 @router.post("/prev")
 def prev_track():
     return get_music().prev()
+
+
+@router.post("/seek")
+def seek(position: float = 0):
+    """Salta para uma posição absoluta (segundos)."""
+    return get_music().seek(position)
+
+
+@router.get("/controls")
+def get_controls():
+    """Estado dos controlos secundários (volume/shuffle/loop)."""
+    return get_music().get_controls()
+
+
+@router.post("/volume")
+def set_volume(level: int):
+    return get_music().set_volume(level)
+
+
+@router.post("/shuffle")
+def shuffle():
+    return get_music().toggle_shuffle()
+
+
+@router.post("/repeat")
+def repeat():
+    return get_music().cycle_loop()
 
 
 @router.get("/cover")

@@ -20,6 +20,10 @@ const ICONS = {
     back: svgIcon("M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"),
     temp: svgIcon("M15 13V5a3 3 0 0 0-6 0v8a5 5 0 1 0 6 0zm-3-9a1 1 0 0 1 1 1v3h-2V5a1 1 0 0 1 1-1z"),
     warning: svgIcon("M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"),
+    shuffle: svgIcon("M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"),
+    repeat: svgIcon("M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"),
+    "repeat-one": svgIcon("M7 7h10v3l4-4-4-4v3H5v6h2V7zm6 8v-6h-1l-2 1v1h1.5v4H13zm-6 2v-3l-4 4 4 4v-3h6v-2H7z"),
+    volume: svgIcon("M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12z"),
 };
 
 // Preenche os slots estáticos (<... data-icon="nome">) uma vez ao carregar.
@@ -35,6 +39,9 @@ renderStaticIcons();
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
+    // Ao entrar na música, vai buscar o estado dos controlos secundários
+    // (volume/shuffle/repeat) — que de propósito não vêm no /status.
+    if (id === 'screen-music') loadControls();
 }
 
 // Relógio
@@ -235,6 +242,8 @@ function applyStatus(data) {
             albumArt.innerHTML = ICONS.music;
             isPlaying = false;
         }
+
+        updateProgressUI();
     } catch (e) {
         console.error("Erro ao aplicar status:", e);
     }
@@ -326,8 +335,36 @@ setInterval(() => {
             trackPosition = trackDuration;
         }
         updateActiveLyric();
+        updateProgressUI();
     }
 }, 1000);
+
+// Atualiza a barra de progresso e os tempos a partir de trackPosition/Duration.
+function updateProgressUI() {
+    const bar = document.getElementById("progress-bar");
+    if (!bar) return;
+    const pct = trackDuration > 0 ? Math.min(100, (trackPosition / trackDuration) * 100) : 0;
+    bar.style.width = pct + "%";
+    const cur = document.getElementById("time-current");
+    const tot = document.getElementById("time-total");
+    if (cur) cur.innerText = formatTime(trackPosition);
+    if (tot) tot.innerText = trackDuration > 0 ? formatTime(trackDuration) : "--:--";
+}
+
+// Seek: toque na barra → fração da largura → posição absoluta.
+async function seekTo(event) {
+    if (trackDuration <= 0) return;
+    const container = document.getElementById("progress-container");
+    const rect = container.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    trackPosition = frac * trackDuration;
+    updateProgressUI();
+    try {
+        await fetch(`/music/seek?position=${Math.floor(trackPosition)}`, { method: "POST" });
+    } catch (e) {
+        console.error("Erro no seek:", e);
+    }
+}
 
 // Controlos
 async function togglePlay() {
@@ -359,4 +396,54 @@ async function prevTrack() {
 
 async function makeDiscoverable() {
     await fetch("/bluetooth/discoverable", { method: "POST" });
+}
+
+// --- Volume / Shuffle / Repeat ---------------------------------------------
+// Estes controlos não vêm no /status (mudam só por ação do utilizador), por
+// isso são carregados via /music/controls ao entrar no ecrã de música.
+async function setVolume(level) {
+    try {
+        await fetch(`/music/volume?level=${level}`, { method: "POST" });
+    } catch (e) {
+        console.error("Erro a definir volume:", e);
+    }
+}
+
+function setShuffleUI(on) {
+    document.getElementById("shuffle-btn").classList.toggle("active", !!on);
+}
+
+function setRepeatUI(loop) {
+    const btn = document.getElementById("repeat-btn");
+    btn.classList.toggle("active", loop && loop !== "None");
+    btn.innerHTML = loop === "Track" ? ICONS["repeat-one"] : ICONS.repeat;
+}
+
+async function toggleShuffle() {
+    try {
+        const r = await (await fetch("/music/shuffle", { method: "POST" })).json();
+        setShuffleUI(r.shuffle);
+    } catch (e) {
+        console.error("Erro no shuffle:", e);
+    }
+}
+
+async function toggleRepeat() {
+    try {
+        const r = await (await fetch("/music/repeat", { method: "POST" })).json();
+        setRepeatUI(r.loop);
+    } catch (e) {
+        console.error("Erro no repeat:", e);
+    }
+}
+
+async function loadControls() {
+    try {
+        const c = await (await fetch("/music/controls")).json();
+        if (c.volume != null) document.getElementById("volume-slider").value = c.volume;
+        setShuffleUI(c.shuffle);
+        setRepeatUI(c.loop);
+    } catch (e) {
+        console.error("Erro ao carregar controlos:", e);
+    }
 }

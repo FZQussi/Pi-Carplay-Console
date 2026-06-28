@@ -118,17 +118,21 @@ toca, sem tocar em nada, em <10s após o boot.
 
 # Fase V2 — Excelência multimédia + UX
 
-## Sprint 10 — Controlo multimédia total 🟢
+## Sprint 10 — Controlo multimédia total 🟢 ✅
 
 **Objetivo:** controlar tudo a partir do ecrã, como uma head unit a sério.
 
 **Meta de sucesso:** seek, volume, shuffle e repeat funcionais e fiáveis a partir do toque.
 
-- [ ] Barra de progresso clicável → seek via `playerctl position` (AVRCP)
-- [ ] Controlo de volume via mixer ALSA (`amixer`) com slider
-- [ ] Shuffle / Repeat (estado lido e comandado via `playerctl`)
-- [ ] Botão mute
-- [ ] Tratar graciosamente players que não suportam seek/position
+- [x] Barra de progresso clicável → seek via `playerctl position` (estava em
+      falta na UI apesar do CSS/JS já existirem)
+- [x] Controlo de volume via mixer ALSA (`amixer`) com slider
+- [x] Shuffle / Repeat (estado lido e comandado via `playerctl`; repeat cicla
+      None → Track → Playlist, com ícone `repeat-one` no modo Track)
+- [x] `/music/controls` separado do `/status` para não pesar no push de 1s
+- [x] Tratar graciosamente players que não suportam seek/position (guard
+      `trackDuration<=0`; backend devolve erro em vez de rebentar)
+- [ ] Botão mute dedicado — slider a 0 cobre funcionalmente; fica para polish
 
 **Dependências:** nenhuma.
 
