@@ -24,6 +24,11 @@ const ICONS = {
     repeat: svgIcon("M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"),
     "repeat-one": svgIcon("M7 7h10v3l4-4-4-4v3H5v6h2V7zm6 8v-6h-1l-2 1v1h1.5v4H13zm-6 2v-3l-4 4 4 4v-3h6v-2H7z"),
     volume: svgIcon("M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12z"),
+    camera: svgIcon("M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zM9 2L7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9z"),
+    car: svgIcon("M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-8l-2.08-5.99zM6.5 16a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm11 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM5 11l1.5-4.5h11L19 11H5z"),
+    navigation: svgIcon("M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"),
+    climate: svgIcon("M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22z"),
+    refresh: svgIcon("M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"),
 };
 
 // Preenche os slots estáticos (<... data-icon="nome">) uma vez ao carregar.
@@ -80,13 +85,20 @@ async function loadSettings() {
 }
 loadSettings();
 
-// Navegação
+// Navegação entre ecrãs. Alguns ecrãs (OBD/GPS) fazem polling enquanto
+// visíveis; screenTimer é limpo ao sair para não correr em segundo plano.
+let screenTimer = null;
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
-    // Ao entrar na música, vai buscar o estado dos controlos secundários
-    // (volume/shuffle/repeat) — que de propósito não vêm no /status.
+    if (screenTimer) { clearInterval(screenTimer); screenTimer = null; }
+
     if (id === 'screen-music') loadControls();
+    else if (id === 'screen-settings') loadSettingsScreen();
+    else if (id === 'screen-camera') openCamera();
+    else if (id === 'screen-obd') { loadObd(); screenTimer = setInterval(loadObd, 1000); }
+    else if (id === 'screen-nav') { loadGps(); screenTimer = setInterval(loadGps, 1000); }
+    else if (id === 'screen-climate') loadClimate();
 }
 
 // Relógio
@@ -509,3 +521,151 @@ async function loadControls() {
         console.error("Erro ao carregar controlos:", e);
     }
 }
+
+// === Veículo: câmara / OBD / GPS / clima ==================================
+async function openCamera() {
+    const view = document.getElementById("camera-view");
+    try {
+        const s = await (await fetch("/camera/status")).json();
+        view.innerHTML = s.available
+            ? `<img src="/camera/stream" alt="câmara">`
+            : `<div class="muted">Câmara indisponível (requer hardware)</div>`;
+    } catch (e) {
+        view.innerHTML = `<div class="muted">Erro ao abrir câmara</div>`;
+    }
+}
+
+async function loadObd() {
+    try {
+        const d = await (await fetch("/obd/status")).json();
+        const set = (id, v) => document.getElementById(id).innerText = (v ?? "--");
+        set("obd-rpm", d.rpm); set("obd-speed", d.speed);
+        set("obd-coolant", d.coolant); set("obd-fuel", d.fuel);
+        document.getElementById("obd-note").style.display = d.available ? "none" : "block";
+    } catch (e) { console.error("Erro OBD:", e); }
+}
+
+async function loadGps() {
+    try {
+        const p = await (await fetch("/gps/position")).json();
+        document.getElementById("gps-lat").innerText = p.lat != null ? p.lat.toFixed(5) : "--";
+        document.getElementById("gps-lon").innerText = p.lon != null ? p.lon.toFixed(5) : "--";
+        document.getElementById("gps-speed").innerText = p.speed != null ? Math.round(p.speed * 3.6) + " km/h" : "--";
+        document.getElementById("gps-note").style.display = p.fix ? "none" : "block";
+    } catch (e) { console.error("Erro GPS:", e); }
+}
+
+async function loadClimate() {
+    const box = document.getElementById("climate-buttons");
+    try {
+        const d = await (await fetch("/climate/commands")).json();
+        box.innerHTML = (d.commands && d.commands.length)
+            ? d.commands.map(c => `<button class="bt-connect-btn" onclick="sendClimate('${c}')">${c}</button>`).join("")
+            : `<div class="muted">Nenhum comando IR aprendido.</div>`;
+    } catch (e) {
+        box.innerHTML = `<div class="muted">Erro a carregar comandos.</div>`;
+    }
+}
+
+async function sendClimate(cmd) {
+    try {
+        await fetch(`/climate/send?command=${encodeURIComponent(cmd)}`, { method: "POST" });
+    } catch (e) { console.error("Erro clima:", e); }
+}
+
+// === Definições: fonte de áudio, dispositivos BT, versão/OTA =============
+async function loadSettingsScreen() {
+    try {
+        const s = await (await fetch("/audio/source")).json();
+        setSourceUI(s.source);
+    } catch (e) { console.error("Erro fonte:", e); }
+    loadDevices();
+    loadVersion();
+}
+
+function setSourceUI(src) {
+    document.querySelectorAll("#source-switch button").forEach(b =>
+        b.classList.toggle("active", b.dataset.source === src));
+}
+
+async function setSource(src) {
+    setSourceUI(src);
+    try {
+        await fetch("/audio/source", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source: src }),
+        });
+    } catch (e) { console.error("Erro a definir fonte:", e); }
+}
+
+async function loadDevices() {
+    const list = document.getElementById("device-list");
+    try {
+        const d = await (await fetch("/bluetooth/devices")).json();
+        list.innerHTML = (d.devices && d.devices.length)
+            ? d.devices.map(dev => `
+                <div class="device-row">
+                    <span>${dev.connected ? ICONS.bluetooth + " " : ""}${dev.name}</span>
+                    <span>
+                        <button class="mini-btn" onclick="connectDevice('${dev.mac}')">Ligar</button>
+                        <button class="mini-btn" onclick="forgetDevice('${dev.mac}')">Esquecer</button>
+                    </span>
+                </div>`).join("")
+            : `<span class="muted">Nenhum dispositivo (ou Bluetooth indisponível).</span>`;
+    } catch (e) {
+        list.innerHTML = `<span class="muted">Erro a listar dispositivos.</span>`;
+    }
+}
+
+async function connectDevice(mac) {
+    try {
+        await fetch(`/bluetooth/connect?mac=${encodeURIComponent(mac)}`, { method: "POST" });
+        loadDevices();
+    } catch (e) { console.error("Erro a ligar:", e); }
+}
+
+async function forgetDevice(mac) {
+    try {
+        await fetch(`/bluetooth/forget?mac=${encodeURIComponent(mac)}`, { method: "POST" });
+        loadDevices();
+    } catch (e) { console.error("Erro a esquecer:", e); }
+}
+
+async function loadVersion() {
+    try {
+        const v = await (await fetch("/system/version")).json();
+        document.getElementById("app-version").innerText =
+            v.version ? `${v.version} (${v.date || "?"})` : "--";
+    } catch (e) { console.error("Erro versão:", e); }
+}
+
+async function runUpdate() {
+    if (!confirm("Atualizar o AveoOS agora? O sistema vai reiniciar.")) return;
+    try {
+        const r = await (await fetch("/system/update", { method: "POST" })).json();
+        alert(r.status === "updating" ? "A atualizar e reiniciar..." : "Update: " + JSON.stringify(r));
+    } catch (e) { alert("Erro no update: " + e); }
+}
+
+// === Voz: reconhecimento do browser (kiosk Chromium) → /voice/command ====
+function initVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = document.getElementById("voice-btn");
+    if (!SR || !btn) return;            // sem suporte → botão fica escondido
+    btn.classList.remove("hidden");
+    window._voiceRec = new SR();
+    window._voiceRec.lang = "pt-PT";
+    window._voiceRec.onresult = async (ev) => {
+        const text = ev.results[0][0].transcript;
+        try {
+            await fetch(`/voice/command?text=${encodeURIComponent(text)}`, { method: "POST" });
+        } catch (e) { console.error("Erro voz:", e); }
+        setTimeout(fetchStatus, 600);
+    };
+}
+
+function startVoice() {
+    try { window._voiceRec && window._voiceRec.start(); } catch (e) { console.error(e); }
+}
+initVoice();

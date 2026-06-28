@@ -30,6 +30,22 @@
             <div class="app-icon-img" data-icon="music"></div>
             <div class="app-icon-label">Música</div>
        </div>
+        <div class="app-icon" onclick="showScreen('screen-camera')">
+            <div class="app-icon-img" data-icon="camera"></div>
+            <div class="app-icon-label">Câmara</div>
+       </div>
+        <div class="app-icon" onclick="showScreen('screen-nav')">
+            <div class="app-icon-img" data-icon="navigation"></div>
+            <div class="app-icon-label">Navegação</div>
+       </div>
+        <div class="app-icon" onclick="showScreen('screen-obd')">
+            <div class="app-icon-img" data-icon="car"></div>
+            <div class="app-icon-label">OBD2</div>
+       </div>
+        <div class="app-icon" onclick="showScreen('screen-climate')">
+            <div class="app-icon-img" data-icon="climate"></div>
+            <div class="app-icon-label">Clima</div>
+       </div>
         <div class="app-icon" onclick="showScreen('screen-settings')">
             <div class="app-icon-img" data-icon="settings"></div>
             <div class="app-icon-label">Definições</div>
@@ -63,6 +79,9 @@
             <button class="ctrl-btn" data-icon="next" onclick="nextTrack()"></button>
             <button class="ctrl-btn ctrl-btn-sm" id="repeat-btn" data-icon="repeat" onclick="toggleRepeat()"></button>
        </div>
+        <!-- Voz: usa o reconhecimento do browser (kiosk Chromium) e envia o
+             texto para /voice/command. Escondido se o browser não suportar. -->
+        <button class="ctrl-btn ctrl-btn-sm hidden" id="voice-btn" data-icon="mic" onclick="startVoice()"></button>
         <div class="volume-row">
             <span data-icon="volume"></span>
             <input type="range" min="0" max="100" value="50" id="volume-slider"
@@ -73,6 +92,58 @@
        </div>
         <button class="bt-connect-btn" onclick="makeDiscoverable()"><span data-icon="bluetooth"></span> Ligar Bluetooth</button>
    </div>
+</div>
+
+<!-- Câmara de marcha-atrás -->
+<div class="screen hidden" id="screen-camera">
+    <div class="vehicle-page">
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+        <h2>Câmara</h2>
+        <div class="camera-view" id="camera-view">
+            <div class="muted">Câmara indisponível (requer hardware)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Navegação -->
+<div class="screen hidden" id="screen-nav">
+    <div class="vehicle-page">
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+        <h2>Navegação</h2>
+        <div class="gauges">
+            <div class="gauge"><div class="gauge-val" id="gps-lat">--</div><div class="gauge-lbl">Latitude</div></div>
+            <div class="gauge"><div class="gauge-val" id="gps-lon">--</div><div class="gauge-lbl">Longitude</div></div>
+            <div class="gauge"><div class="gauge-val" id="gps-speed">--</div><div class="gauge-lbl">Velocidade</div></div>
+        </div>
+        <div class="muted" id="gps-note">Sem fix GPS. Mapas offline (tiles) são um asset à parte — ver FEATURE-PLAN.</div>
+    </div>
+</div>
+
+<!-- OBD2 -->
+<div class="screen hidden" id="screen-obd">
+    <div class="vehicle-page">
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+        <h2>OBD2</h2>
+        <div class="gauges">
+            <div class="gauge"><div class="gauge-val" id="obd-rpm">--</div><div class="gauge-lbl">RPM</div></div>
+            <div class="gauge"><div class="gauge-val" id="obd-speed">--</div><div class="gauge-lbl">km/h</div></div>
+            <div class="gauge"><div class="gauge-val" id="obd-coolant">--</div><div class="gauge-lbl">Temp °C</div></div>
+            <div class="gauge"><div class="gauge-val" id="obd-fuel">--</div><div class="gauge-lbl">Combustível %</div></div>
+        </div>
+        <div class="muted" id="obd-note">Sem ligação ao adaptador ELM327.</div>
+    </div>
+</div>
+
+<!-- Clima (IR) -->
+<div class="screen hidden" id="screen-climate">
+    <div class="vehicle-page">
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+        <h2>Clima</h2>
+        <div class="climate-buttons" id="climate-buttons">
+            <div class="muted">Nenhum comando IR aprendido.</div>
+        </div>
+        <div class="muted">Aprender requer emissor/recetor IR no Pi.</div>
+    </div>
 </div>
 
 <!-- Página de definições -->
@@ -91,6 +162,26 @@
         <div class="setting-item">
             <span>Dispositivo Bluetooth</span>
             <span id="bt-device-name">--</span>
+       </div>
+        <div class="setting-item">
+            <span>Fonte de áudio</span>
+            <div class="theme-switch" id="source-switch">
+                <button data-source="bluetooth" onclick="setSource('bluetooth')">Bluetooth</button>
+                <button data-source="aux" onclick="setSource('aux')">AUX</button>
+                <button data-source="usb" onclick="setSource('usb')">USB</button>
+            </div>
+       </div>
+        <div class="setting-item setting-col">
+            <span>Dispositivos emparelhados</span>
+            <div class="device-list" id="device-list"><span class="muted">--</span></div>
+       </div>
+        <div class="setting-item">
+            <span>Versão</span>
+            <span id="app-version">--</span>
+       </div>
+        <div class="setting-item">
+            <span>Atualizar (OTA)</span>
+            <button class="bt-connect-btn" onclick="runUpdate()"><span data-icon="refresh"></span> Atualizar</button>
        </div>
    </div>
 </div>
