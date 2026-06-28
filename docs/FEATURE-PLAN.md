@@ -56,37 +56,42 @@ corrupção de filesystem nem boot falhado.
 
 ---
 
-## Sprint 7 — Tempo real (WebSocket) 🟡
+## Sprint 7 — Tempo real (WebSocket) 🟡 ✅
 
 **Objetivo:** substituir o polling de 2s por push de eventos; UI reage instantaneamente.
 
 **Meta de sucesso:** mudança de track/estado BT reflete-se na UI em <300ms,
 e o CPU em idle desce vs. o polling atual.
 
-- [ ] Endpoint `ws://host:8000/ws` ligado ao `ConnectionManager` de `core/ws.py`
-- [ ] Ligar `core/events.py` ao `ws.py`: evento publicado → `broadcast()`
-- [ ] Loop de monitorização que deteta mudanças (track, BT) e publica eventos
-- [ ] Frontend: cliente WS com reconnect automático; manter polling como fallback
-- [ ] Remover `setInterval(loadStatus, 2000)` quando o WS estiver estável
-- [ ] Estado inicial enviado no `connect` (para o ecrã arrancar preenchido)
+- [x] Endpoint `ws://host:8000/ws` ligado ao `ConnectionManager` de `core/ws.py`
+- [x] Loop de monitorização (`monitor_loop` em `main.py`) que lê o estado
+      off-thread e faz `broadcast()` **só quando muda** — em idle não há tráfego
+- [x] Frontend: cliente WS com reconnect automático; polling de 2s só como fallback
+- [x] Polling desliga-se quando o WS está vivo (sem duplicar carga nos subprocessos)
+- [x] Estado inicial enviado no `connect` (para o ecrã arrancar preenchido)
+- [x] `websockets` + `httpx` adicionados a `requirements.txt` (faltavam)
+
+> Nota: o bridge `core/events.py → ws.py` previsto não foi necessário — o
+> `monitor_loop` faz broadcast diretamente. O `events.py` fica reservado para
+> eventos originados em hardware (ex.: `ACC_OFF` no Sprint 6).
 
 **Dependências:** nenhuma (puro software, testável no PC).
 
 ---
 
-## Sprint 8 — Monitor de sistema 🟢
+## Sprint 8 — Monitor de sistema 🟢 ✅
 
 **Objetivo:** saber a saúde do Pi — temperatura, throttling, armazenamento.
 
 **Meta de sucesso:** UI mostra temperatura do CPU e avisa em throttle/undervoltage
 antes de o sistema ficar instável.
 
-- [ ] Implementar `SystemService` (atualmente ficheiro vazio): `get_cpu_temp()`,
-      `get_throttled()` (via `vcgencmd`), `get_uptime()`, `get_storage()`
-- [ ] Deteção de undervoltage (flag do `vcgencmd get_throttled`)
-- [ ] Endpoint `/system/health` agregado
-- [ ] Indicador discreto na barra de topo (temp/aviso) — só aparece quando relevante
-- [ ] Log rotativo + `journalctl` documentado para diagnóstico pós-falha
+- [x] `SystemService`: `get_cpu_temp()` (sysfs, barato), `get_throttled()`
+      (`vcgencmd`, com cache de 10s), `get_uptime()`, `get_storage()`
+- [x] Deteção de undervoltage (bit do `vcgencmd get_throttled`)
+- [x] Endpoint `/system/health` agregado + bloco compacto no push em tempo real
+- [x] Indicador discreto na barra de topo (temp/aviso) — só aparece quando relevante
+- [ ] Log rotativo + `journalctl` documentado para diagnóstico pós-falha (fica para o Sprint 6/sistema)
 
 **Dependências:** nenhuma crítica (parte testável no PC, `vcgencmd` só no Pi).
 

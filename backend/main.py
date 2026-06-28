@@ -31,7 +31,7 @@ from backend.api.music import router as music_router
 from backend.api.system import router as system_router
 from backend.core.config import FRONTEND_DIR, FRONTEND_PAGES_DIR
 from backend.core.ws import manager
-from backend.services import get_bluetooth, get_music
+from backend.services import get_bluetooth, get_music, get_system
 
 logger = logging.getLogger("aveoos.main")
 
@@ -51,6 +51,7 @@ def build_status() -> dict:
     return {
         "bluetooth": get_bluetooth().get_status(),
         "music": get_music().get_current_track(),
+        "system": get_system().get_status(),
     }
 
 

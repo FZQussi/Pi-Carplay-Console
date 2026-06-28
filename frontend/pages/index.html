@@ -9,18 +9,23 @@
 <!-- Barra de topo -->
 <div class="top-bar">
     <div id="time">00:00</div>
-    <div id="bt-status">⚫ Sem Bluetooth</div>
+    <div class="top-bar-right">
+        <!-- Indicador de sistema: só aparece quando há temperatura alta
+             ou aviso de undervoltage/throttle (preenchido por JS). -->
+        <div id="sys-status" class="hidden"></div>
+        <div id="bt-status"><span data-icon="bluetooth-off"></span> Sem Bluetooth</div>
+    </div>
 </div>
 
 <!-- Menu principal -->
 <div class="screen" id="screen-home">
     <div class="app-grid">
         <div class="app-icon" onclick="showScreen('screen-music')">
-            <div class="app-icon-img">🎵</div>
+            <div class="app-icon-img" data-icon="music"></div>
             <div class="app-icon-label">Música</div>
        </div>
         <div class="app-icon" onclick="showScreen('screen-settings')">
-            <div class="app-icon-img">⚙️</div>
+            <div class="app-icon-img" data-icon="settings"></div>
             <div class="app-icon-label">Definições</div>
        </div>
    </div>
@@ -29,28 +34,28 @@
 <!-- Página de música -->
 <div class="screen hidden" id="screen-music">
     <div class="music-page">
-        <button class="back-btn" onclick="showScreen('screen-home')">← Voltar</button>
-        <div class="album-art" id="album-art">🎵</div>
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+        <div class="album-art" id="album-art" data-icon="music"></div>
         <div class="track-info">
             <div class="track-name" id="track">--</div>
             <div class="track-artist" id="artist">--</div>
        </div>
         <div class="lyrics-container" id="lyrics-container">
-            <div class="lyrics-line">🎤 Letra não disponível</div>
+            <div class="lyrics-line"><span data-icon="mic"></span> Letra não disponível</div>
        </div>
         <div class="controls">
-            <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
-            <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
-            <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
+            <button class="ctrl-btn" data-icon="prev" onclick="prevTrack()"></button>
+            <button class="ctrl-btn play-btn" id="play-btn" data-icon="play" onclick="togglePlay()"></button>
+            <button class="ctrl-btn" data-icon="next" onclick="nextTrack()"></button>
        </div>
-        <button class="bt-connect-btn" onclick="makeDiscoverable()">🔵 Ligar Bluetooth</button>
+        <button class="bt-connect-btn" onclick="makeDiscoverable()"><span data-icon="bluetooth"></span> Ligar Bluetooth</button>
    </div>
 </div>
 
 <!-- Página de definições -->
 <div class="screen hidden" id="screen-settings">
     <div class="settings-page">
-        <button class="back-btn" onclick="showScreen('screen-home')">← Voltar</button>
+        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
         <h2>Definições</h2>
         <div class="setting-item">
             <span>Dispositivo Bluetooth</span>

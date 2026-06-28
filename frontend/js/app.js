@@ -1,3 +1,36 @@
+// Ícones SVG ----------------------------------------------------------------
+// O kiosk (Chromium em RPi OS Lite) não traz fonte de emoji, por isso os
+// emojis ficavam invisíveis. Usamos SVG inline (herdam a cor via
+// `currentColor` e o tamanho via `1em`, ou seja, seguem o font-size do
+// contexto, tal como os emojis seguiam).
+function svgIcon(path) {
+    return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+}
+
+const ICONS = {
+    music: svgIcon("M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"),
+    settings: svgIcon("M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 14.4 2h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.04.24.23.41.47.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"),
+    play: svgIcon("M8 5v14l11-7z"),
+    pause: svgIcon("M6 19h4V5H6v14zm8-14v14h4V5h-4z"),
+    prev: svgIcon("M6 6h2v12H6zm3.5 6l8.5 6V6z"),
+    next: svgIcon("M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"),
+    bluetooth: svgIcon("M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"),
+    "bluetooth-off": svgIcon("M13 5.83l1.88 1.88-1.6 1.6 1.41 1.41 3.02-3.02L12 2h-1v5.03l2 2v-3.2zM5.41 4L4 5.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l4.29-4.29 2.3 2.29L20 18.59 5.41 4zM13 18.17v-3.76l1.88 1.88L13 18.17z"),
+    mic: svgIcon("M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"),
+    back: svgIcon("M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"),
+    temp: svgIcon("M15 13V5a3 3 0 0 0-6 0v8a5 5 0 1 0 6 0zm-3-9a1 1 0 0 1 1 1v3h-2V5a1 1 0 0 1 1-1z"),
+    warning: svgIcon("M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"),
+};
+
+// Preenche os slots estáticos (<... data-icon="nome">) uma vez ao carregar.
+function renderStaticIcons() {
+    document.querySelectorAll("[data-icon]").forEach(el => {
+        const icon = ICONS[el.dataset.icon];
+        if (icon) el.innerHTML = icon;
+    });
+}
+renderStaticIcons();
+
 // Navegação
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -26,9 +59,8 @@ function formatTime(seconds) {
     return `${m}:${(s % 60).toString().padStart(2,'0')}`;
 }
 
-// Placeholder da capa: varia por música (cor + emoji)
-const PLACEHOLDER_EMOJIS = ["🎵", "🎶", "🎷", "🎸", "🎹", "🎺", "🥁", "🪕", "🎻", "📻"];
-
+// Placeholder da capa: a variação por música vem da cor do gradiente
+// (ver generateGradient); o ícone é sempre a nota de música em SVG.
 function hashText(text) {
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
@@ -41,11 +73,6 @@ function generateGradient(hash) {
     const h1 = Math.abs(hash % 360);
     const h2 = (h1 + 40) % 360;
     return `linear-gradient(135deg, hsl(${h1},60%,25%), hsl(${h2},60%,15%))`;
-}
-
-function pickPlaceholderEmoji(hash) {
-    const index = Math.abs(hash) % PLACEHOLDER_EMOJIS.length;
-    return PLACEHOLDER_EMOJIS[index];
 }
 
 // Letras
@@ -75,14 +102,14 @@ function renderLyricsPlaceholder(msg) {
 async function loadLyrics(artist, track) {
     // Não faz reset do lyricsLines/currentLyricIndex aqui para não
     // interromper a letra que já está a correr enquanto o fetch decorre.
-    renderLyricsPlaceholder("🎤 A procurar letra...");
+    renderLyricsPlaceholder(`${ICONS.mic} A procurar letra...`);
 
     try {
         const url = `/music/lyrics?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`;
         const res = await fetch(url);
         if (!res.ok) {
             console.error("Erro HTTP ao obter letra:", res.status, res.statusText);
-            renderLyricsPlaceholder("🎤 Letra não disponível");
+            renderLyricsPlaceholder(`${ICONS.mic} Letra não disponível`);
             return;
         }
 
@@ -108,13 +135,13 @@ async function loadLyrics(artist, track) {
         } else {
             lyricsLines = [];
             currentLyricIndex = -1;
-            renderLyricsPlaceholder("🎤 Letra não disponível");
+            renderLyricsPlaceholder(`${ICONS.mic} Letra não disponível`);
         }
     } catch (e) {
         console.error("Erro ao obter letra (fetch/parse):", e);
         lyricsLines = [];
         currentLyricIndex = -1;
-        renderLyricsPlaceholder("🎤 Letra não disponível");
+        renderLyricsPlaceholder(`${ICONS.mic} Letra não disponível`);
     }
 }
 
@@ -150,17 +177,19 @@ function applyStatus(data) {
         const bt = data.bluetooth;
 
         document.getElementById("bt-status").innerHTML = bt.connected
-            ? `🔵 ${bt.device}` : "⚫ Sem Bluetooth";
+            ? `${ICONS.bluetooth} ${bt.device}` : `${ICONS["bluetooth-off"]} Sem Bluetooth`;
 
         const btDeviceName = document.getElementById("bt-device-name");
         if (btDeviceName) btDeviceName.innerText = bt.device || "--";
+
+        updateSystemIndicator(data.system);
 
         const albumArt = document.getElementById("album-art");
 
         if (bt.playing) {
             document.getElementById("track").innerText = bt.track || "--";
             document.getElementById("artist").innerText = bt.artist || "--";
-            document.getElementById("play-btn").innerText = "⏸";
+            document.getElementById("play-btn").innerHTML = ICONS.pause;
             isPlaying = true;
 
             // Só usa a posição do servidor se for um valor real (>1s).
@@ -182,7 +211,7 @@ function applyStatus(data) {
                 // Placeholder enquanto não há capa
                 const hash = hashText(bt.track + bt.artist);
                 albumArt.style.background = generateGradient(hash);
-                albumArt.innerHTML = pickPlaceholderEmoji(hash);
+                albumArt.innerHTML = ICONS.music;
 
                 // Capa
                 fetch(`/music/cover?artist=${encodeURIComponent(bt.artist || "")}&track=${encodeURIComponent(bt.track)}`)
@@ -201,13 +230,36 @@ function applyStatus(data) {
         } else {
             document.getElementById("track").innerText = bt.connected ? "Em pausa" : "--";
             document.getElementById("artist").innerText = bt.connected ? bt.device : "--";
-            document.getElementById("play-btn").innerText = "▶";
+            document.getElementById("play-btn").innerHTML = ICONS.play;
             albumArt.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
-            albumArt.innerHTML = "🎵";
+            albumArt.innerHTML = ICONS.music;
             isPlaying = false;
         }
     } catch (e) {
         console.error("Erro ao aplicar status:", e);
+    }
+}
+
+// Indicador de sistema na barra de topo. Só aparece quando há um aviso
+// (undervoltage/throttle) ou quando a temperatura já está a subir (>=70°C).
+// O resto do tempo fica escondido para não poluir a UI.
+function updateSystemIndicator(sys) {
+    const el = document.getElementById("sys-status");
+    if (!el) return;
+    sys = sys || {};
+    const temp = sys.cpu_temp;
+
+    if (sys.warning) {
+        const label = sys.warning === "undervoltage" ? "Tensão baixa" : "Temperatura";
+        el.className = "sys-warn";
+        el.innerHTML = `${ICONS.warning} ${temp != null ? temp + "°C" : label}`;
+        el.classList.remove("hidden");
+    } else if (temp != null && temp >= 70) {
+        el.className = "sys-temp";
+        el.innerHTML = `${ICONS.temp} ${temp}°C`;
+        el.classList.remove("hidden");
+    } else {
+        el.classList.add("hidden");
     }
 }
 
@@ -280,7 +332,7 @@ setInterval(() => {
 // Controlos
 async function togglePlay() {
     isPlaying = !isPlaying;
-    document.getElementById("play-btn").innerText = isPlaying ? "⏸" : "▶";
+    document.getElementById("play-btn").innerHTML = isPlaying ? ICONS.pause : ICONS.play;
 
     if (isPlaying) {
         await fetch("/music/play", { method: "POST" });
