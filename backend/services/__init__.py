@@ -3,11 +3,12 @@ from functools import lru_cache
 from backend.services.music import MusicService
 from backend.services.bluetooth import BluetoothService
 from backend.services.system import SystemService
+from backend.services.settings import SettingsService
 
 # Pacote `services`. Re-exporta as classes públicas.
 __all__ = [
-    "MusicService", "BluetoothService", "SystemService",
-    "get_music", "get_bluetooth", "get_system",
+    "MusicService", "BluetoothService", "SystemService", "SettingsService",
+    "get_music", "get_bluetooth", "get_system", "get_settings",
 ]
 
 
@@ -27,3 +28,9 @@ def get_bluetooth() -> BluetoothService:
 def get_system() -> SystemService:
     """Devolve a instância singleton de SystemService."""
     return SystemService()
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> SettingsService:
+    """Devolve a instância singleton de SettingsService."""
+    return SettingsService()

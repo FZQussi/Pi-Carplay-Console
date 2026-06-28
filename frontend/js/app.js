@@ -35,6 +35,51 @@ function renderStaticIcons() {
 }
 renderStaticIcons();
 
+// Tema dia/noite ------------------------------------------------------------
+// themeMode é a preferência ("auto" | "day" | "night"), persistida no backend.
+// Em "auto" escolhemos por hora (dia 7h–18h59). O tema efetivo é aplicado no
+// atributo data-theme do <html>, que controla as variáveis CSS.
+let themeMode = "auto";
+
+function resolveTheme(mode) {
+    if (mode === "day" || mode === "night") return mode;
+    const h = new Date().getHours();
+    return (h >= 7 && h < 19) ? "day" : "night";
+}
+
+function applyTheme() {
+    document.documentElement.dataset.theme = resolveTheme(themeMode);
+    // Marca o botão ativo no seletor de definições.
+    document.querySelectorAll("#theme-switch button").forEach(b => {
+        b.classList.toggle("active", b.dataset.themeMode === themeMode);
+    });
+}
+
+async function setTheme(mode) {
+    themeMode = mode;
+    applyTheme();
+    try {
+        await fetch("/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ theme: mode }),
+        });
+    } catch (e) {
+        console.error("Erro a guardar tema:", e);
+    }
+}
+
+async function loadSettings() {
+    try {
+        const s = await (await fetch("/settings")).json();
+        if (s.theme) themeMode = s.theme;
+    } catch (e) {
+        console.error("Erro a carregar definições:", e);
+    }
+    applyTheme();
+}
+loadSettings();
+
 // Navegação
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -50,9 +95,25 @@ function updateClock() {
     document.getElementById("time").innerText =
         now.getHours().toString().padStart(2,'0') + ":" +
         now.getMinutes().toString().padStart(2,'0');
+    // Em modo automático, reavalia o tema para que vire dia/noite à hora
+    // certa sem ser preciso recarregar.
+    if (themeMode === "auto") applyTheme();
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// Splash: esconde-se quando o primeiro estado chega (ou por timeout, caso
+// o backend demore — não queremos ficar presos no splash).
+let splashHidden = false;
+function hideSplash() {
+    if (splashHidden) return;
+    splashHidden = true;
+    const splash = document.getElementById("splash");
+    if (!splash) return;
+    splash.classList.add("fade-out");
+    setTimeout(() => splash.classList.add("hidden"), 400);
+}
+setTimeout(hideSplash, 5000);  // rede de segurança
 
 // Estado
 let isPlaying = false;
@@ -244,6 +305,7 @@ function applyStatus(data) {
         }
 
         updateProgressUI();
+        hideSplash();
     } catch (e) {
         console.error("Erro ao aplicar status:", e);
     }

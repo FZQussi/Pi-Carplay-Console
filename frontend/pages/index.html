@@ -1,10 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt" data-theme="night">
 <head>
     <title>AveoOS</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+
+<!-- Splash de arranque: escondido pelo JS quando o primeiro estado chega. -->
+<div class="splash" id="splash">
+    <div class="splash-logo" data-icon="music"></div>
+    <div class="splash-title">AveoOS</div>
+</div>
 
 <!-- Barra de topo -->
 <div class="top-bar">
@@ -74,6 +80,14 @@
     <div class="settings-page">
         <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
         <h2>Definições</h2>
+        <div class="setting-item">
+            <span>Tema</span>
+            <div class="theme-switch" id="theme-switch">
+                <button data-theme-mode="auto" onclick="setTheme('auto')">Auto</button>
+                <button data-theme-mode="day" onclick="setTheme('day')">Dia</button>
+                <button data-theme-mode="night" onclick="setTheme('night')">Noite</button>
+            </div>
+       </div>
         <div class="setting-item">
             <span>Dispositivo Bluetooth</span>
             <span id="bt-device-name">--</span>

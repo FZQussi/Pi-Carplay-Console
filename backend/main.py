@@ -28,6 +28,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api.bluetooth import router as bluetooth_router
 from backend.api.music import router as music_router
+from backend.api.settings import router as settings_router
 from backend.api.system import router as system_router
 from backend.core.config import FRONTEND_DIR, FRONTEND_PAGES_DIR
 from backend.core.ws import manager
@@ -105,6 +106,7 @@ app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 app.include_router(music_router)
 app.include_router(bluetooth_router)
 app.include_router(system_router)
+app.include_router(settings_router)
 
 
 @app.get("/")
