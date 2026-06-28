@@ -27,10 +27,13 @@ internet; o resto funciona offline.
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from fastapi.responses import FileResponse, Response
 
+from backend.core import cache
 from backend.services import get_music
 
 # Garante que os logs aparecem na consola onde o uvicorn está a correr
@@ -77,7 +80,7 @@ def prev_track():
 
 
 @router.post("/seek")
-def seek(position: float = 0):
+def seek(position: float = Query(0, ge=0)):
     """Salta para uma posição absoluta (segundos)."""
     return get_music().seek(position)
 
@@ -89,7 +92,7 @@ def get_controls():
 
 
 @router.post("/volume")
-def set_volume(level: int):
+def set_volume(level: int = Query(..., ge=0, le=100)):
     return get_music().set_volume(level)
 
 
@@ -103,48 +106,74 @@ def repeat():
     return get_music().cycle_loop()
 
 
+def _cover_url(artist: str, track: str) -> str:
+    """URL local (servida pelo backend) da capa em cache — funciona offline."""
+    return "/music/cover/img?" + urlencode({"artist": artist, "track": track})
+
+
 @router.get("/cover")
 async def get_cover(artist: str = "", track: str = ""):
-    """Procura a capa na iTunes Search API a partir do artist/track
-    fornecidos pelo frontend (que já os tem via `/status`)."""
+    """Devolve a URL local da capa, garantindo que está em cache.
+
+    Se já estiver em disco, devolve logo (sem rede). Caso contrário procura
+    na iTunes Search API, **descarrega os bytes da imagem** e guarda em
+    cache — para que nas próximas vezes (e offline) seja servida do disco.
+    """
     try:
         if not artist or not track:
             return {"cover": None}
 
+        # Acerto em cache: nada de rede.
+        if cache.get_cover(artist, track):
+            return {"cover": _cover_url(artist, track)}
+
         logger.info("A procurar capa: artist=%r track=%r", artist, track)
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=DEFAULT_HEADERS, timeout=5) as client:
             resp = await client.get(
                 ITUNES_SEARCH_URL,
-                headers=DEFAULT_HEADERS,
                 params={
                     "term": f"{artist} {track}",
                     "media": "music",
                     "entity": "song",
                     "limit": 1,
                 },
-                timeout=5,
             )
+            if resp.status_code != 200:
+                logger.warning("iTunes devolveu status=%s", resp.status_code)
+                return {"cover": None}
 
-        if resp.status_code != 200:
-            logger.warning("iTunes devolveu status=%s", resp.status_code)
-            return {"cover": None}
+            results = resp.json().get("results", [])
+            if not results:
+                logger.info("iTunes sem resultados para %r - %r", artist, track)
+                return {"cover": None}
 
-        results = resp.json().get("results", [])
-        if not results:
-            logger.info("iTunes não encontrou resultados para %r - %r", artist, track)
-            return {"cover": None}
+            # Vem em 100x100; pedimos uma resolução maior e descarregamos.
+            artwork = (results[0].get("artworkUrl100") or "").replace(
+                "100x100bb", "600x600bb"
+            )
+            if not artwork:
+                return {"cover": None}
 
-        # Vem normalmente em 100x100; pedimos uma resolução maior.
-        artwork = results[0].get("artworkUrl100")
-        if artwork:
-            artwork = artwork.replace("100x100bb", "600x600bb")
+            img = await client.get(artwork)
+            if img.status_code != 200 or not img.content:
+                return {"cover": None}
 
-        return {"cover": artwork}
+        cache.save_cover(artist, track, img.content)
+        return {"cover": _cover_url(artist, track)}
 
     except Exception as e:
         logger.exception("Erro ao obter capa")
         return {"cover": None, "error": f"{type(e).__name__}: {e}"}
+
+
+@router.get("/cover/img")
+def cover_img(artist: str = "", track: str = ""):
+    """Serve a capa em cache a partir do disco (offline-friendly)."""
+    path = cache.get_cover(artist, track)
+    if path:
+        return FileResponse(str(path), media_type="image/jpeg")
+    return Response(status_code=404)
 
 
 @router.get("/lyrics")
@@ -161,6 +190,11 @@ async def get_lyrics(artist: str = "", track: str = ""):
         if not artist or not track:
             logger.info("Sem artist/track ainda — a saltar pedido de letra.")
             return {"synced": None, "plain": None}
+
+        # Acerto em cache: nada de rede (funciona offline).
+        cached = cache.get_lyrics(artist, track)
+        if cached is not None:
+            return cached
 
         logger.info("A procurar letra: artist=%r track=%r", artist, track)
 
@@ -186,7 +220,12 @@ async def get_lyrics(artist: str = "", track: str = ""):
         plain = data.get("plainLyrics") or None
         logger.info("Letra encontrada: synced=%s plain=%s", bool(synced), bool(plain))
 
-        return {"synced": synced, "plain": plain}
+        result = {"synced": synced, "plain": plain}
+        # Só guardamos quando encontramos algo — assim um "miss" volta a
+        # tentar mais tarde (a LRCLIB pode passar a ter a letra).
+        if synced or plain:
+            cache.save_lyrics(artist, track, result)
+        return result
 
     except Exception as e:
         logger.exception("Erro ao obter letra")
