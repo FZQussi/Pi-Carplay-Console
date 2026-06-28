@@ -6,13 +6,10 @@ já usa para LER o estado (track/artist/playing). Aqui usamo-lo para
 EMITIR os comandos de play/pause/next/prev.
 """
 
-import os
 import re
 import subprocess
 
-# Mesmo D-Bus session bus usado em BluetoothService.get_status() — tem
-# de ser igual, senão o playerctl não encontra o player do telemóvel.
-PLAYERCTL_ENV = {**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
+from backend.core.runtime import dbus_session_env
 
 # Ordem de ciclo do repeat (MPRIS LoopStatus).
 _LOOP_ORDER = ["None", "Track", "Playlist"]
@@ -28,7 +25,7 @@ class MusicService:
                 capture_output=True,
                 text=True,
                 timeout=3,
-                env=PLAYERCTL_ENV,
+                env=dbus_session_env(),
             )
             if result.returncode != 0:
                 return {"status": "error", "error": result.stderr.strip()}
@@ -45,7 +42,7 @@ class MusicService:
                 capture_output=True,
                 text=True,
                 timeout=3,
-                env=PLAYERCTL_ENV,
+                env=dbus_session_env(),
             )
             return result.stdout.strip() if result.returncode == 0 else None
         except Exception:

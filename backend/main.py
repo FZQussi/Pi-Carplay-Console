@@ -26,10 +26,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.api.audio import router as audio_router
 from backend.api.bluetooth import router as bluetooth_router
+from backend.api.camera import router as camera_router
+from backend.api.climate import router as climate_router
+from backend.api.gps import router as gps_router
 from backend.api.music import router as music_router
+from backend.api.obd import router as obd_router
+from backend.api.power import router as power_router
 from backend.api.settings import router as settings_router
 from backend.api.system import router as system_router
+from backend.api.voice import router as voice_router
 from backend.core.config import FRONTEND_DIR, FRONTEND_PAGES_DIR
 from backend.core.ws import manager
 from backend.services import get_bluetooth, get_music, get_system
@@ -76,14 +83,39 @@ async def monitor_loop() -> None:
         await asyncio.sleep(MONITOR_INTERVAL_S)
 
 
+async def power_monitor_loop() -> None:
+    """Vigia o ACC: quando a ignição passa a OFF (após ter estado ON), faz
+    shutdown seguro. Só atua no Pi — fora dele `available` é False e o loop
+    fica inofensivo (nunca desliga a máquina de desenvolvimento)."""
+    from backend.services import get_power
+
+    was_on = False
+    while True:
+        try:
+            st = await asyncio.to_thread(get_power().get_status)
+            if st.get("available"):
+                ignition = bool(st.get("ignition"))
+                if was_on and not ignition:
+                    logger.info("ACC OFF detetado — a iniciar shutdown seguro")
+                    get_power().graceful_shutdown()
+                was_on = ignition
+        except Exception:
+            logger.exception("Erro no monitor de energia")
+        await asyncio.sleep(1)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Arranca o loop de monitorização junto com a app e cancela-o no shutdown."""
-    task = asyncio.create_task(monitor_loop())
+    """Arranca os loops de monitorização junto com a app e cancela-os no shutdown."""
+    tasks = [
+        asyncio.create_task(monitor_loop()),
+        asyncio.create_task(power_monitor_loop()),
+    ]
     try:
         yield
     finally:
-        task.cancel()
+        for task in tasks:
+            task.cancel()
 
 
 app = FastAPI(title="AveoOS", lifespan=lifespan)
@@ -107,6 +139,13 @@ app.include_router(music_router)
 app.include_router(bluetooth_router)
 app.include_router(system_router)
 app.include_router(settings_router)
+app.include_router(power_router)
+app.include_router(audio_router)
+app.include_router(camera_router)
+app.include_router(obd_router)
+app.include_router(gps_router)
+app.include_router(climate_router)
+app.include_router(voice_router)
 
 
 @app.get("/")

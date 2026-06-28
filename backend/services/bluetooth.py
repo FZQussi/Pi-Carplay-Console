@@ -1,6 +1,17 @@
-import subprocess
-import re
+"""Serviço Bluetooth — wrapper sobre `bluetoothctl` + `playerctl`.
+
+Sprint 9: o MAC deixou de estar hardcoded. O dispositivo é descoberto
+dinamicamente (`bluetoothctl devices Connected`) e o DBus de sessão é
+resolvido em runtime (ver `core/runtime.py`), em vez de assumir uid 1000.
+"""
+
 import os
+import re
+import subprocess
+
+from backend.core.runtime import dbus_session_env
+
+_MAC_RE = re.compile(r"([0-9A-Fa-f:]{17})")
 
 
 def _clean_artist(artist):
@@ -12,28 +23,54 @@ def _clean_artist(artist):
     return artist.split("•")[0].strip()
 
 
+def parse_devices(output):
+    """Parse de `bluetoothctl devices [...]` → [{mac, name}]. Pura/testável."""
+    devices = []
+    for line in output.splitlines():
+        line = line.strip()
+        m = re.match(r"Device\s+([0-9A-Fa-f:]{17})\s+(.+)", line)
+        if m:
+            devices.append({"mac": m.group(1), "name": m.group(2).strip()})
+    return devices
+
+
 class BluetoothService:
+    def _run(self, *args, timeout=5):
+        return subprocess.run(["bluetoothctl", *args],
+                              capture_output=True, text=True, timeout=timeout)
+
+    def _connected_mac(self):
+        """MAC do dispositivo atualmente ligado, ou None."""
+        try:
+            out = self._run("devices", "Connected").stdout
+            devs = parse_devices(out)
+            if devs:
+                return devs[0]["mac"]
+        except Exception:
+            pass
+        return None
+
     def get_status(self):
         try:
-            result = subprocess.run(
-                ["bluetoothctl", "info", "14:49:D4:7F:2A:18"],
-                capture_output=True, text=True, timeout=5
-            )
-            connected = "Connected: yes" in result.stdout
-            name_match = re.search(r"Name: (.+)", result.stdout)
+            mac = self._connected_mac()
+            if not mac:
+                return {"connected": False, "device": None, "playing": False,
+                        "track": None, "artist": None, "duration": 0, "position": 0}
 
-            track = None
-            artist = None
+            info = self._run("info", mac).stdout
+            connected = "Connected: yes" in info
+            name_match = re.search(r"Name: (.+)", info)
+
+            track = artist = None
             playing = False
-            duration = 0
-            position = 0
+            duration = position = 0
 
             if connected:
                 meta = subprocess.run(
                     ["playerctl", "metadata", "--format",
                      "{{status}}|{{artist}}|{{title}}|{{mpris:length}}|{{position}}"],
                     capture_output=True, text=True, timeout=3,
-                    env={**os.environ, "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus"}
+                    env=dbus_session_env(),
                 )
                 if meta.returncode == 0:
                     parts = meta.stdout.strip().split("|")
@@ -56,17 +93,46 @@ class BluetoothService:
         except Exception as e:
             return {"connected": False, "device": None, "playing": False, "error": str(e)}
 
+    def list_devices(self):
+        """Dispositivos conhecidos (emparelhados), com flag de ligado."""
+        try:
+            known = parse_devices(self._run("devices").stdout)
+            connected_macs = {d["mac"] for d in parse_devices(self._run("devices", "Connected").stdout)}
+            for d in known:
+                d["connected"] = d["mac"] in connected_macs
+            return {"devices": known}
+        except Exception as e:
+            return {"devices": [], "error": str(e)}
+
+    def connect(self, mac):
+        if not _MAC_RE.fullmatch(mac or ""):
+            return {"status": "error", "error": "MAC inválido"}
+        try:
+            self._run("connect", mac, timeout=15)
+            return {"status": "ok", "mac": mac}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    def forget(self, mac):
+        if not _MAC_RE.fullmatch(mac or ""):
+            return {"status": "error", "error": "MAC inválido"}
+        try:
+            self._run("remove", mac)
+            return {"status": "forgotten", "mac": mac}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
     def make_discoverable(self):
         try:
-            subprocess.run(["bluetoothctl", "discoverable", "on"], timeout=5)
-            subprocess.run(["bluetoothctl", "pairable", "on"], timeout=5)
+            self._run("discoverable", "on")
+            self._run("pairable", "on")
             return {"status": "discoverable"}
         except Exception as e:
             return {"error": str(e)}
 
     def disconnect(self):
         try:
-            subprocess.run(["bluetoothctl", "disconnect"], timeout=5)
+            self._run("disconnect")
             return {"status": "disconnected"}
         except Exception as e:
             return {"error": str(e)}
