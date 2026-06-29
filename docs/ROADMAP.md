@@ -91,6 +91,9 @@ Quando o cenário definido em `GOALS.md` ("o utilizador entra, liga ignição, m
 
 ### V2.1 — Navegação offline
 
+> Atual: o botão **Navegação** abre o Google Maps real num separador do Chromium
+> (online, fora da app). Offline continua planeado:
+
 - Integração com [OsmAnd Maps](https://osmand.net/) ou tiles offline (`mbutil` + mbtiles)
 - Pesquisa de endereços via Nominatim local ou Photon
 - Endpoint `/gps/*` em `api/gps.py` + `GPService`

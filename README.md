@@ -41,7 +41,8 @@ A experiência alvo: entrar no carro, ligar a ignição, arrancar, e a música e
 
 - Python 3.12+ com FastAPI no backend
 - HTML5 + CSS3 + JavaScript vanilla no frontend (sem build step, sem React na V1)
-- BlueZ (`bluetoothctl`), `playerctl`, PulseAudio para o stack de áudio
+- BlueZ (`bluetoothctl`), `playerctl`, PipeWire/PulseAudio para o stack de áudio (HFP via
+  telephony nativa do PipeWire)
 - Chromium em kiosk mode para a UI
 - systemd para auto-start
 
@@ -53,13 +54,17 @@ A experiência alvo: entrar no carro, ligar a ignição, arrancar, e a música e
 
 Já implementado:
 
-- Interface touchscreen cheia (fullscreen) com 3 ecrãs: Home, Música, Definições
-- Relógio no topo
-- Status Bluetooth dinâmico (ligado/desligado + nome do dispositivo)
-- Controlos multimédia (play, pause, next, prev)
-- Metadata básica da música atual (título, artista) via `playerctl`
-- Capa do álbum via pesquisa na API do Spotify (best-effort, com gradiente de fallback)
-- API REST em FastAPI + endpoint de estado agregado
+- Interface touchscreen fullscreen com Home, Música, **Telefone**, Navegação, Câmara, OBD2,
+  Clima e Definições
+- Relógio + status Bluetooth/sistema dinâmico na barra de topo
+- **Música:** play/pause/next/prev, seek, volume, shuffle/repeat, capa (cache local), letra
+  sincronizada; metadata via `playerctl`
+- **Telefone mãos-livres (HFP):** receber/atender/recusar/desligar, caller ID com nome,
+  **mute**, dialpad e lista de contactos (PBAP) com pesquisa — ver [`docs/PHONE.md`](docs/PHONE.md)
+- **Navegação:** abre o Google Maps real num separador do Chromium
+- Câmara, OBD2, Clima (IR), Voz, Power Manager, OTA, tema dia/noite (graus variados de
+  maturação — ver `FEATURE-PLAN.md`)
+- API REST FastAPI + estado agregado com push em tempo real (WebSocket)
 
 Em falta / planeado: ver [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -122,6 +127,7 @@ Documentação detalhada da estrutura: [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 | [`docs/FEATURE-PLAN.md`](docs/FEATURE-PLAN.md) | Plano de features pós-V1: sprints 6–20 com objetivos e metas por fase |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitetura técnica: módulos, API REST, comunicação, princípios |
 | [`docs/INSTALL.md`](docs/INSTALL.md) | Instalação no Raspberry Pi: SO, deps, kiosk mode, auto-start, permissões |
+| [`docs/PHONE.md`](docs/PHONE.md) | Telefone mãos-livres (HFP) + contactos (PBAP): arquitetura, setup, troubleshooting, TODOs |
 | [`docs/HARDWARE.md`](docs/HARDWARE.md) | Componentes, wiring, pinout, considerações para o carro |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Setup local, padrões de código, workflow Git, debugging, testes |
 

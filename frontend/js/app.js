@@ -110,6 +110,11 @@ function updateClock() {
     document.getElementById("time").innerText =
         now.getHours().toString().padStart(2,'0') + ":" +
         now.getMinutes().toString().padStart(2,'0');
+    const dateEl = document.getElementById("date");
+    if (dateEl) {
+        dateEl.innerText = now.toLocaleDateString("pt-PT",
+            { weekday: "long", day: "numeric", month: "long" });
+    }
     // Em modo automático, reavalia o tema para que vire dia/noite à hora
     // certa sem ser preciso recarregar.
     if (themeMode === "auto") applyTheme();

@@ -1,34 +1,47 @@
-/* Tema ----------------------------------------------------------------------
-   As cores vivem em variáveis para suportar modo dia/noite (Sprint 13). O
-   tema é aplicado pelo JS via atributo `data-theme` no <html>:
-     <html data-theme="night">  (default)
-     <html data-theme="day">
-   "auto" (por hora) é resolvido no JS para um destes dois. */
+/* ============================================================================
+   AveoOS — folha de estilo
+   Remodelação para ecrã 1200×800 (kiosk Chromium no Raspberry Pi).
+   Sistema de design: superfícies de vidro escuro, profundidade por sombra +
+   realce interior, cor própria por app (--app) e movimento ambiente lento.
+   Tema dia/noite via atributo data-theme no <html> (resolvido pelo JS).
+   ========================================================================= */
+
+/* Tema ---------------------------------------------------------------------- */
 :root,
 :root[data-theme="night"] {
-    --bg: #0a0a0a;
-    --bar-bg: rgba(0,0,0,0.8);
-    --surface: #1a1a1a;
-    --surface-active: #222;
-    --border: #2a2a2a;
-    --text: #ffffff;
-    --text-dim: #8a8a8a;
+    --bg: #06070b;
+    --bg-2: #0c1018;
+    --bar-bg: rgba(10, 13, 20, 0.55);
+    --surface: rgba(28, 33, 44, 0.72);
+    --surface-2: rgba(36, 42, 56, 0.85);
+    --surface-active: rgba(48, 56, 74, 0.9);
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text: #f3f5f9;
+    --text-dim: #8b93a4;
     --accent: #1db954;
     --accent-active: #17a045;
+    --shadow: rgba(0, 0, 0, 0.55);
     --album-grad: linear-gradient(135deg, #1a1a2e, #16213e);
+    --glass-blur: 18px;
 }
 
 :root[data-theme="day"] {
-    --bg: #eceef2;
-    --bar-bg: rgba(255,255,255,0.85);
-    --surface: #ffffff;
-    --surface-active: #e6e8ec;
-    --border: #d3d7df;
-    --text: #14171f;
-    --text-dim: #6b7280;
+    --bg: #e7ebf2;
+    --bg-2: #f4f6fa;
+    --bar-bg: rgba(255, 255, 255, 0.6);
+    --surface: rgba(255, 255, 255, 0.82);
+    --surface-2: rgba(255, 255, 255, 0.95);
+    --surface-active: rgba(232, 236, 243, 0.95);
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.16);
+    --text: #121723;
+    --text-dim: #5b6472;
     --accent: #1aa34a;
     --accent-active: #158a3e;
+    --shadow: rgba(40, 56, 90, 0.18);
     --album-grad: linear-gradient(135deg, #c7ccd6, #aeb4c0);
+    --glass-blur: 16px;
 }
 
 * {
@@ -38,21 +51,51 @@
 }
 
 body {
-    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     height: 100vh;
+    width: 100vw;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     user-select: none;
-    /* Transição suave ao trocar de tema. */
-    transition: background 0.3s, color 0.3s;
+    position: relative;
+    transition: background 0.4s, color 0.4s;
 }
 
-/* Ícones SVG (substituem os emojis — ver app.js).
-   Herdam a cor via currentColor e o tamanho via 1em, por isso seguem o
-   font-size do contexto, tal como os emojis seguiam. */
+/* Fundo ambiente: duas manchas de cor que derivam devagar. Dá "vida" sem
+   distrair. transform/opacity apenas → composto na GPU.
+   ponytail: blur+animação são pesados no Pi; tudo aqui usa só transform e o
+   ambiente está atrás do conteúdo. Se notares lag no kiosk, baixa a opacidade
+   ou tira a animação `drift`. */
+.ambient {
+    position: fixed;
+    inset: -25%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(38% 38% at 22% 28%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 70%),
+        radial-gradient(42% 42% at 82% 72%, rgba(59, 130, 246, 0.30), transparent 70%),
+        radial-gradient(50% 50% at 50% 110%, rgba(139, 92, 246, 0.18), transparent 70%);
+    filter: blur(40px) saturate(120%);
+    opacity: 0.7;
+    animation: drift 36s ease-in-out infinite alternate;
+}
+
+:root[data-theme="day"] .ambient { opacity: 0.4; }
+
+@keyframes drift {
+    0%   { transform: translate3d(-4%, -3%, 0) scale(1); }
+    50%  { transform: translate3d(5%, 2%, 0) scale(1.08); }
+    100% { transform: translate3d(-2%, 5%, 0) scale(1.03); }
+}
+
+/* Tudo o que é UI fica acima do ambiente. */
+.top-bar, .screen, .splash, .call-modal { position: relative; z-index: 1; }
+
+/* Ícones SVG (substituem emojis — ver app.js). Herdam cor (currentColor) e
+   tamanho (1em), por isso seguem o font-size do contexto. */
 .icon {
     width: 1em;
     height: 1em;
@@ -61,7 +104,7 @@ body {
     flex: none;
 }
 
-/* Splash de arranque: tapa o ecrã até o primeiro estado chegar. */
+/* Splash -------------------------------------------------------------------- */
 .splash {
     position: fixed;
     inset: 0;
@@ -70,214 +113,317 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
-    background: var(--bg);
+    gap: 16px;
+    background: radial-gradient(60% 60% at 50% 40%, var(--bg-2), var(--bg));
     color: var(--accent);
-    transition: opacity 0.4s ease;
+    transition: opacity 0.45s ease;
 }
 
-.splash.hidden {
-    display: none !important;
-}
-
-.splash.fade-out {
-    opacity: 0;
-}
+.splash.hidden { display: none !important; }
+.splash.fade-out { opacity: 0; }
 
 .splash-logo {
-    font-size: 4rem;
+    font-size: 4.5rem;
     line-height: 1;
+    filter: drop-shadow(0 0 28px color-mix(in srgb, var(--accent) 70%, transparent));
+    animation: pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50%      { transform: scale(1.08); opacity: 1; }
 }
 
 .splash-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 3px;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: 6px;
     color: var(--text);
 }
 
-/* Barra de topo */
+.splash-sub {
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+/* Barra de topo ------------------------------------------------------------- */
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 28px;
+    padding: 14px 30px;
     background: var(--bar-bg);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--surface);
-    z-index: 10;
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border-bottom: 1px solid var(--border);
+    flex: none;
 }
 
-.top-bar-right {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-/* Indicador de sistema (temp/aviso). Escondido por defeito; o JS mostra-o
-   só quando há aviso ou a temperatura sobe. */
-#sys-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.85rem;
-}
-
-#sys-status.sys-temp { color: #e0a23b; }
-#sys-status.sys-warn { color: #e5484d; }
+.top-bar-left { display: flex; align-items: baseline; gap: 14px; }
 
 #time {
-    font-size: 1.3rem;
-    font-weight: 600;
-    letter-spacing: 2px;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
 }
 
-#bt-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+.top-date {
     font-size: 0.85rem;
     color: var(--text-dim);
+    text-transform: capitalize;
 }
 
-/* Screens */
+.top-bar-right { display: flex; align-items: center; gap: 12px; }
+
+/* Chips de estado (vidro). */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 7px 13px;
+    border-radius: 999px;
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+#sys-status.sys-temp { color: #f0b34a; border-color: color-mix(in srgb, #f0b34a 40%, transparent); }
+#sys-status.sys-warn { color: #ff5d62; border-color: color-mix(in srgb, #ff5d62 45%, transparent); }
+
+/* Screens ------------------------------------------------------------------- */
 .screen {
     flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
-.hidden {
-    display: none !important;
+/* Entrada animada sempre que um ecrã passa a visível (o JS só tira .hidden). */
+.screen:not(.hidden) { animation: screenIn 0.38s cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@keyframes screenIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.992); }
+    to   { opacity: 1; transform: none; }
 }
 
-/* App grid (home) */
-.app-grid {
+.hidden { display: none !important; }
+
+/* Cabeçalho de página (voltar + título). */
+.page-head {
     display: flex;
-    flex-wrap: wrap;
-    gap: 28px;
-    padding: 48px;
-    justify-content: center;
     align-items: center;
-    height: 100%;
+    gap: 16px;
+    width: 100%;
 }
 
-.app-icon {
-    display: flex;
-    flex-direction: column;
+.page-head h2 {
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
-    transition: transform 0.15s;
+    font-size: 1.5rem;
+    font-weight: 700;
 }
 
-.app-icon:active {
-    transform: scale(0.93);
-}
+.page-head h2 .icon { color: var(--accent); }
 
-.app-icon-img {
-    width: 90px;
-    height: 90px;
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: var(--surface);
-    border-radius: 22px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 9px 16px;
+    border-radius: 999px;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+}
+
+.back-btn:hover { border-color: var(--border-strong); }
+.back-btn:active { transform: scale(0.95); background: var(--surface-active); }
+
+.panel-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.panel-title .icon { color: var(--accent); }
+
+/* Home — bento grid --------------------------------------------------------- */
+.app-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    grid-template-areas:
+        "music music camera nav"
+        "phone obd climate settings";
+    gap: 18px;
+    padding: 22px 28px 28px;
+    min-height: 0;
+}
+
+.tile--music    { grid-area: music; }
+.tile--camera   { grid-area: camera; }
+.tile--nav      { grid-area: nav; }
+.tile--phone    { grid-area: phone; }
+.tile--obd      { grid-area: obd; }
+.tile--climate  { grid-area: climate; }
+.tile--settings { grid-area: settings; }
+
+.tile {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 22px;
+    border-radius: 24px;
+    cursor: pointer;
+    background:
+        linear-gradient(160deg,
+            color-mix(in srgb, var(--app) 22%, var(--surface)),
+            var(--surface) 62%);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.18s, border-color 0.18s;
+}
+
+/* Brilho sutil no canto, na cor da app. */
+.tile::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -20%;
+    width: 70%;
+    height: 90%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--app) 55%, transparent), transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.tile:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--app) 45%, var(--border));
+    box-shadow: 0 18px 44px var(--shadow), 0 0 0 1px color-mix(in srgb, var(--app) 30%, transparent);
+}
+.tile:hover::before { opacity: 0.8; }
+.tile:active { transform: scale(0.97); }
+
+.tile-icon {
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.4rem;
-    color: var(--accent);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-    border: 1px solid var(--border);
+    border-radius: 18px;
+    font-size: 2rem;
+    color: var(--app);
+    background: color-mix(in srgb, var(--app) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--app) 30%, transparent);
 }
 
-.app-icon-label {
-    font-size: 0.85rem;
-    color: var(--text-dim);
-}
+.tile-label { font-size: 1.4rem; font-weight: 700; }
+.tile-sub { font-size: 0.85rem; color: var(--text-dim); margin-top: 2px; }
 
-/* Página de música */
+/* Tile destacada (Música) — ícone e tipografia maiores. */
+.tile--music { padding: 28px; }
+.tile--music .tile-icon { width: 84px; height: 84px; font-size: 2.8rem; border-radius: 22px; }
+.tile--music .tile-label { font-size: 2rem; }
+.tile--music .tile-sub { font-size: 1rem; }
+
+/* Página de música — duas colunas ------------------------------------------ */
 .music-page {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 20px 32px;
+    gap: 14px;
+    padding: 18px 28px 24px;
     height: 100%;
-    gap: 12px;
-    /* Com seek + volume + letra, no ecrã do carro (800×480) o conteúdo pode
-       passar a altura — permitir scroll evita que algo fique cortado. */
+    min-height: 0;
+}
+
+.music-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 22px;
+    flex: 1;
+    min-height: 0;
+}
+
+.music-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px;
+    border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow-y: auto;
     scrollbar-width: none;
 }
 
-.back-btn {
-    align-self: flex-start;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: none;
-    border: none;
-    color: var(--accent);
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 4px 0;
-}
-
 .album-art {
-    width: 180px;
-    height: 180px;
+    width: 230px;
+    height: 230px;
     background: var(--album-grad);
-    border-radius: 20px;
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 5rem;
-    color: #ffffff;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    border: 1px solid var(--border);
-    margin: 8px 0;
+    font-size: 5.5rem;
+    color: #fff;
+    box-shadow: 0 18px 50px var(--shadow), 0 0 0 1px var(--border);
+    flex: none;
 }
 
-.track-info {
-    text-align: center;
-}
+.track-info { text-align: center; max-width: 100%; }
 
 .track-name {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 320px;
+    max-width: 360px;
 }
 
-.track-artist {
-    font-size: 1rem;
-    color: var(--accent);
-}
+.track-artist { font-size: 1.05rem; color: var(--accent); }
 
-/* Barra de progresso */
-/* Wrapper com padding vertical para dar um alvo de toque maior (seek),
-   sem engrossar a barra visível. */
-.progress-container {
-    width: 100%;
-    padding: 8px 0;
-    cursor: pointer;
-}
+/* Barra de progresso (wrapper com padding p/ alvo de toque maior). */
+.progress-container { width: 100%; padding: 10px 0; cursor: pointer; }
 
 .progress-bar-container {
     width: 100%;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
+    height: 6px;
+    background: var(--border-strong);
+    border-radius: 3px;
     overflow: hidden;
 }
 
 .progress-bar {
     height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent));
+    border-radius: 3px;
     width: 0%;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent);
     transition: width 1s linear;
 }
 
@@ -285,69 +431,54 @@ body {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
 }
 
-/* Controlos */
-.controls {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-    margin-top: 8px;
-}
+/* Controlos. */
+.controls { display: flex; gap: 22px; align-items: center; margin-top: 4px; }
 
 .ctrl-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 50%;
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
     font-size: 1.5rem;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: transform 0.12s, background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.ctrl-btn:active {
-    transform: scale(0.92);
-    background: var(--surface-active);
-}
+.ctrl-btn:active { transform: scale(0.9); background: var(--surface-active); }
 
 .play-btn {
-    width: 70px;
-    height: 70px;
-    font-size: 1.8rem;
+    width: 74px;
+    height: 74px;
+    font-size: 1.9rem;
     background: var(--accent);
-    color: #000000;
+    color: #001b0c;
     border: none;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 45%, transparent);
 }
+.play-btn:active { background: var(--accent-active); }
 
-.play-btn:active {
-    background: var(--accent-active);
-}
-
-/* Botões secundários (shuffle/repeat): menores e apagados até ativos. */
-.ctrl-btn-sm {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
-    color: var(--text-dim);
-}
-
+.ctrl-btn-sm { width: 46px; height: 46px; font-size: 1.2rem; color: var(--text-dim); }
 .ctrl-btn-sm.active {
     color: var(--accent);
     border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/* Volume */
+/* Volume. */
 .volume-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
     color: var(--text-dim);
     font-size: 1.1rem;
@@ -355,73 +486,121 @@ body {
 
 .volume-slider {
     flex: 1;
+    height: 6px;
     accent-color: var(--accent);
     cursor: pointer;
 }
 
+.player-actions { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+
 .bt-connect-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: none;
+    gap: 7px;
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 10px 24px;
-    border-radius: 20px;
-    font-size: 0.85rem;
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-size: 0.88rem;
     cursor: pointer;
-    margin-top: 4px;
+    transition: color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.bt-connect-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
+.bt-connect-btn:hover { border-color: var(--accent); color: var(--accent); }
+.bt-connect-btn:active { transform: scale(0.96); }
 
-/* Settings */
-.settings-page {
-    padding: 24px 32px;
+/* Painel de letra. */
+.music-lyrics {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 12px;
+    padding: 22px;
+    border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    min-height: 0;
 }
 
-.settings-page h2 {
-    font-size: 1.6rem;
+.lyrics-container {
+    flex: 1;
+    overflow-y: auto;
+    text-align: center;
+    padding: 8px;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+.lyrics-line {
+    opacity: 0.4;
+    padding: 6px 0;
+    font-size: 1.05rem;
+    transition: opacity 0.3s, transform 0.3s, color 0.3s;
+}
+
+.lyrics-line.active {
+    opacity: 1;
+    font-weight: 700;
     color: var(--accent);
+    transform: scale(1.06);
+}
+
+/* Definições ---------------------------------------------------------------- */
+.settings-page {
+    padding: 18px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: 100%;
+    min-height: 0;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    align-content: start;
 }
 
 .setting-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    gap: 12px;
+    padding: 18px 20px;
     background: var(--surface);
-    border-radius: 12px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     font-size: 0.95rem;
+    box-shadow: 0 6px 18px var(--shadow);
 }
 
-.setting-item span:first-child {
-    color: var(--text);
-}
+.setting-wide { grid-column: 1 / -1; }
+.setting-item span:first-child { color: var(--text); font-weight: 600; }
+.setting-item > span:last-child { color: var(--text-dim); }
 
-.setting-item > span:last-child {
-    color: var(--text-dim);
-}
-
-/* Seletor de tema (segmented control) */
+/* Segmented control (tema / fonte). */
 .theme-switch {
     display: flex;
-    gap: 6px;
+    gap: 4px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px;
 }
 
 .theme-switch button {
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: none;
+    border: none;
     color: var(--text-dim);
-    padding: 6px 14px;
-    border-radius: 14px;
+    padding: 7px 16px;
+    border-radius: 999px;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -429,99 +608,85 @@ body {
 
 .theme-switch button.active {
     background: var(--accent);
-    border-color: var(--accent);
-    color: #000000;
+    color: #001b0c;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Ecrãs de veículo (câmara/OBD/GPS/clima) */
+/* Ecrãs de veículo (câmara / OBD / clima) ----------------------------------- */
 .vehicle-page {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 18px;
-    padding: 20px 32px;
+    padding: 18px 28px 24px;
     height: 100%;
+    min-height: 0;
     overflow-y: auto;
     scrollbar-width: none;
 }
 
-.vehicle-page h2 {
-    color: var(--accent);
-    font-size: 1.5rem;
-}
-
-.muted {
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    text-align: center;
-}
+.muted { color: var(--text-dim); font-size: 0.9rem; text-align: center; }
 
 .camera-view {
     width: 100%;
     flex: 1;
-    min-height: 200px;
+    min-height: 300px;
     background: #000;
-    border-radius: 14px;
+    border-radius: 22px;
     border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    box-shadow: 0 10px 30px var(--shadow);
 }
 
-.camera-view img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
+.camera-view img { width: 100%; height: 100%; object-fit: contain; }
 
 .gauges {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    justify-content: center;
 }
 
 .gauge {
-    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--app) 16%, var(--surface)), var(--surface) 65%);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 24px;
-    min-width: 120px;
+    border-radius: 20px;
+    padding: 26px 20px;
     text-align: center;
+    box-shadow: 0 8px 24px var(--shadow);
+}
+
+.gauge::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%; height: 4px;
+    background: var(--app);
+    opacity: 0.8;
 }
 
 .gauge-val {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--accent);
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--app);
+    font-variant-numeric: tabular-nums;
 }
 
-.gauge-lbl {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    margin-top: 4px;
-}
+.gauge-lbl { font-size: 0.82rem; color: var(--text-dim); margin-top: 6px; }
 
 .climate-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
 }
 
-/* Lista de dispositivos Bluetooth nas Definições */
-.setting-col {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-}
-
-.device-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+/* Lista de dispositivos BT nas Definições. */
+.setting-col { flex-direction: column; align-items: stretch; gap: 12px; }
+.device-list { display: flex; flex-direction: column; gap: 8px; }
 
 .device-row {
     display: flex;
@@ -529,97 +694,83 @@ body {
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
 }
 
 .mini-btn {
-    background: var(--bg);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 10px;
     font-size: 0.8rem;
     cursor: pointer;
-    margin-left: 4px;
+    margin-left: 6px;
+    transition: background 0.15s, color 0.15s;
 }
+.mini-btn:hover { color: var(--text); }
+.mini-btn:active { background: var(--surface-active); }
 
-.mini-btn:active {
-    background: var(--surface-active);
-}
-
-.lyrics-container {
-    max-height: 140px;
-    overflow-y: auto;
-    text-align: center;
-    padding: 10px;
-    scrollbar-width: none;
-}
-.lyrics-line {
-    opacity: 0.4;
-    padding: 4px 0;
-    transition: opacity 0.3s, transform 0.3s;
-}
-.lyrics-line.active {
-    opacity: 1;
-    font-weight: bold;
-    transform: scale(1.05);
-}
-
-/* Telefone (HFP) */
+/* Telefone (HFP) ------------------------------------------------------------ */
 .phone-page {
     display: flex;
     flex-direction: row;
-    gap: 24px;
-    padding: 16px 28px;
+    gap: 22px;
+    padding: 18px 28px 24px;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
 }
 
-/* Coluna esquerda: teclado de marcação (largura fixa). */
 .phone-left {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    width: 318px;
+    gap: 14px;
+    width: 380px;
     flex: none;
+    padding: 22px;
+    border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px var(--shadow);
     overflow-y: auto;
     scrollbar-width: none;
 }
 
-/* Coluna direita: pesquisa + lista de contactos com scroll. */
 .phone-right {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-top: 4px;
-}
-
-.contact-search {
-    width: 100%;
-    flex: none;
+    gap: 12px;
+    padding: 22px;
+    border-radius: 24px;
     background: var(--surface);
     border: 1px solid var(--border);
+    box-shadow: 0 10px 30px var(--shadow);
+}
+
+.contact-search,
+.dial-number {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
     color: var(--text);
-    border-radius: 12px;
-    padding: 11px 14px;
+    border-radius: 14px;
     font-size: 1rem;
+    padding: 12px 16px;
 }
 
 .contact-search::placeholder { color: var(--text-dim); }
 
 .dial-number {
-    width: 100%;
-    max-width: 360px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 1.5rem;
+    font-size: 1.7rem;
     text-align: center;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
 }
 
 .dialpad {
@@ -627,29 +778,22 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     width: 100%;
-    max-width: 360px;
 }
 
 .dial-key {
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 50%;
     aspect-ratio: 1;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+    font-weight: 600;
     cursor: pointer;
     transition: transform 0.1s, background 0.15s;
 }
-
 .dial-key:active { transform: scale(0.92); background: var(--surface-active); }
 
-.dial-actions {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    width: 100%;
-    max-width: 360px;
-}
+.dial-actions { display: flex; gap: 12px; align-items: center; width: 100%; }
 
 .dial-call {
     flex: 1;
@@ -658,25 +802,27 @@ body {
     justify-content: center;
     gap: 8px;
     background: var(--accent);
-    color: #000;
+    color: #001b0c;
     border: none;
     border-radius: 16px;
-    padding: 12px;
+    padding: 14px;
     font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 40%, transparent);
 }
-
-.dial-call:active { background: var(--accent-active); }
+.dial-call:active { background: var(--accent-active); transform: scale(0.98); }
 
 .dial-back {
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 16px;
-    padding: 12px 18px;
+    padding: 14px 20px;
     font-size: 1.2rem;
     cursor: pointer;
 }
+.dial-back:active { background: var(--surface-active); }
 
 .contacts-list {
     display: flex;
@@ -694,14 +840,15 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    background: var(--surface);
+    background: var(--bg-2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 14px;
+    border-radius: 14px;
+    padding: 13px 16px;
     font-size: 0.95rem;
     cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
 }
-
+.contact-row:hover { border-color: var(--border-strong); }
 .contact-row:active { background: var(--surface-active); }
 .contact-number { color: var(--text-dim); font-size: 0.85rem; }
 
@@ -710,7 +857,9 @@ body {
     position: fixed;
     inset: 0;
     z-index: 50;
-    background: rgba(0,0,0,0.85);
+    background: rgba(3, 5, 9, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -720,19 +869,39 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     text-align: center;
+    padding: 40px 56px;
+    border-radius: 28px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.call-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.6rem;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    margin-bottom: 8px;
+    animation: pulse 2s ease-in-out infinite;
 }
 
 .call-name { font-size: 2rem; font-weight: 700; color: var(--text); }
-.call-number { font-size: 1.1rem; color: var(--text-dim); }
+.call-number { font-size: 1.05rem; color: var(--text-dim); }
 .call-state { font-size: 1rem; color: var(--accent); }
 
-.call-buttons { display: flex; gap: 40px; margin-top: 20px; }
+.call-buttons { display: flex; gap: 36px; margin-top: 18px; }
 
 .call-accept, .call-decline, .call-mute {
-    width: 72px;
-    height: 72px;
+    width: 74px;
+    height: 74px;
     border-radius: 50%;
     border: none;
     color: #fff;
@@ -741,10 +910,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.12s;
 }
 
-.call-accept { background: var(--accent); color: #000; }
-.call-decline { background: #e5484d; }
-.call-mute { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.call-accept { background: var(--accent); color: #001b0c; box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 45%, transparent); }
+.call-decline { background: #e5484d; box-shadow: 0 10px 26px rgba(229, 72, 77, 0.4); }
+.call-mute { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .call-mute.active { background: #e0a23b; color: #000; }
 .call-accept:active, .call-decline:active, .call-mute:active { transform: scale(0.92); }
+
+/* Scrollbar fina (WebKit/Chromium do kiosk). */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }

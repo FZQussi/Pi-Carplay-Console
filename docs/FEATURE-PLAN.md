@@ -171,24 +171,31 @@ nenhuma feature core depende de internet.
 
 ---
 
-## Sprint 12 — Fontes de áudio e chamadas 🟡 HW · ✅ parcial (verificar no Pi)
+## Sprint 12 — Fontes de áudio e chamadas 🟡 HW · ✅ HFP verificado no Pi
 
-> Implementado: abstração de fonte (bluetooth/aux/usb) com seletor na UI e
-> `/audio/source`; interface de estado de chamada `/audio/call`. A comutação
-> real do PulseAudio e o HFP (atender/caller ID) ficam marcados com TODO —
-> dependem do setup de áudio e de oFono/BlueZ com telemóvel.
+> Implementado e **verificado em hardware** (Android via Bluetooth): telefone
+> mãos-livres completo via **telephony nativa do PipeWire** (expõe a API
+> compatível `org.ofono`) + contactos via **PBAP/obexd**. `PhoneService`
+> (`backend/services/phone.py`), `/phone/*`, modal de chamada global, dialpad,
+> mute e lista de contactos lateral com pesquisa. Setup reproduzível em
+> `scripts/phone/setup-hfp.sh`. Doc completa: [`PHONE.md`](PHONE.md).
+> A abstração de fonte (bluetooth/aux/usb) já existia (`/audio/source`).
 
 **Objetivo:** mais do que Bluetooth — AUX/USB e chamadas mãos-livres.
 
 **Meta de sucesso:** receber/atender uma chamada pelo ecrã com caller ID;
 trocar de fonte de áudio sem reiniciar nada.
 
-- [ ] Abstração de "source" (Bluetooth / AUX-in / USB) com seletor na UI
-- [ ] Hands-free (HFP): atender/rejeitar, caller ID, mute
-- [ ] Banner de chamada/notificação recebida sobre qualquer ecrã
-- [ ] Encaminhamento de áudio correto por source (PulseAudio)
+- [x] Hands-free (HFP): atender / rejeitar / desligar, caller ID, **mute**, marcar
+- [x] Caller ID com **nome** resolvido dos contactos (PBAP)
+- [x] Lista de contactos (PBAP) lateral, com scroll e pesquisa
+- [x] Banner/modal de chamada sobre qualquer ecrã (via push WebSocket)
+- [x] Abstração de "source" (Bluetooth / AUX-in / USB) com seletor na UI
+- [ ] **Verificar direção do mute** e afinar rota de áudio SCO no hardware
+- [ ] Cache de contactos no `connect` (resolver nome sem abrir o ecrã antes)
+- [ ] Reconexão BT fiável do lado do Pi (`le-connection-abort-by-local`)
 
-**Dependências:** Sprint 9 (BT robusto).
+**Dependências:** Sprint 9 (BT robusto). **Próximos TODOs:** ver [`PHONE.md`](PHONE.md).
 
 ---
 

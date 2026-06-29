@@ -1,108 +1,132 @@
 <!DOCTYPE html>
 <html lang="pt" data-theme="night">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1200, initial-scale=1">
     <title>AveoOS</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
+<!-- Camada de fundo ambiente: gradientes lentos que dão "vida" sem distrair.
+     Puro CSS (transform), separado do conteúdo para não repintar a UI. -->
+<div class="ambient" aria-hidden="true"></div>
+
 <!-- Splash de arranque: escondido pelo JS quando o primeiro estado chega. -->
 <div class="splash" id="splash">
     <div class="splash-logo" data-icon="music"></div>
     <div class="splash-title">AveoOS</div>
+    <div class="splash-sub">a iniciar sistema</div>
 </div>
 
 <!-- Barra de topo -->
 <div class="top-bar">
-    <div id="time">00:00</div>
+    <div class="top-bar-left">
+        <div id="time">00:00</div>
+        <div id="date" class="top-date">--</div>
+    </div>
     <div class="top-bar-right">
         <!-- Indicador de sistema: só aparece quando há temperatura alta
              ou aviso de undervoltage/throttle (preenchido por JS). -->
-        <div id="sys-status" class="hidden"></div>
-        <div id="bt-status"><span data-icon="bluetooth-off"></span> Sem Bluetooth</div>
+        <div id="sys-status" class="hidden chip"></div>
+        <div id="bt-status" class="chip"><span data-icon="bluetooth-off"></span> Sem Bluetooth</div>
     </div>
 </div>
 
-<!-- Menu principal -->
+<!-- Menu principal (bento) -->
 <div class="screen" id="screen-home">
     <div class="app-grid">
-        <div class="app-icon" onclick="showScreen('screen-music')">
-            <div class="app-icon-img" data-icon="music"></div>
-            <div class="app-icon-label">Música</div>
-       </div>
-        <div class="app-icon" onclick="showScreen('screen-camera')">
-            <div class="app-icon-img" data-icon="camera"></div>
-            <div class="app-icon-label">Câmara</div>
-       </div>
-        <div class="app-icon" onclick="openMapsTab()">
-            <div class="app-icon-img" data-icon="navigation"></div>
-            <div class="app-icon-label">Navegação</div>
-       </div>
-        <div class="app-icon" onclick="showScreen('screen-phone')">
-            <div class="app-icon-img" data-icon="phone"></div>
-            <div class="app-icon-label">Telefone</div>
-       </div>
-        <div class="app-icon" onclick="showScreen('screen-obd')">
-            <div class="app-icon-img" data-icon="car"></div>
-            <div class="app-icon-label">OBD2</div>
-       </div>
-        <div class="app-icon" onclick="showScreen('screen-climate')">
-            <div class="app-icon-img" data-icon="climate"></div>
-            <div class="app-icon-label">Clima</div>
-       </div>
-        <div class="app-icon" onclick="showScreen('screen-settings')">
-            <div class="app-icon-img" data-icon="settings"></div>
-            <div class="app-icon-label">Definições</div>
-       </div>
-   </div>
+        <div class="tile tile--music" style="--app:#1db954" onclick="showScreen('screen-music')">
+            <div class="tile-icon" data-icon="music"></div>
+            <div class="tile-text">
+                <div class="tile-label">Música</div>
+                <div class="tile-sub">Bluetooth &middot; letras &middot; capas</div>
+            </div>
+        </div>
+        <div class="tile tile--camera" style="--app:#f5a623" onclick="showScreen('screen-camera')">
+            <div class="tile-icon" data-icon="camera"></div>
+            <div class="tile-text"><div class="tile-label">Câmara</div><div class="tile-sub">Marcha-atrás</div></div>
+        </div>
+        <div class="tile tile--nav" style="--app:#3b82f6" onclick="openMapsTab()">
+            <div class="tile-icon" data-icon="navigation"></div>
+            <div class="tile-text"><div class="tile-label">Navegação</div><div class="tile-sub">Google Maps</div></div>
+        </div>
+        <div class="tile tile--phone" style="--app:#38bdf8" onclick="showScreen('screen-phone')">
+            <div class="tile-icon" data-icon="phone"></div>
+            <div class="tile-text"><div class="tile-label">Telefone</div><div class="tile-sub">Mãos-livres</div></div>
+        </div>
+        <div class="tile tile--obd" style="--app:#ef5350" onclick="showScreen('screen-obd')">
+            <div class="tile-icon" data-icon="car"></div>
+            <div class="tile-text"><div class="tile-label">OBD2</div><div class="tile-sub">Diagnóstico</div></div>
+        </div>
+        <div class="tile tile--climate" style="--app:#06b6d4" onclick="showScreen('screen-climate')">
+            <div class="tile-icon" data-icon="climate"></div>
+            <div class="tile-text"><div class="tile-label">Clima</div><div class="tile-sub">Climatização</div></div>
+        </div>
+        <div class="tile tile--settings" style="--app:#8b5cf6" onclick="showScreen('screen-settings')">
+            <div class="tile-icon" data-icon="settings"></div>
+            <div class="tile-text"><div class="tile-label">Definições</div><div class="tile-sub">Sistema</div></div>
+        </div>
+    </div>
 </div>
 
-<!-- Página de música -->
+<!-- Página de música (duas colunas: leitor + letra) -->
 <div class="screen hidden" id="screen-music">
     <div class="music-page">
         <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <div class="album-art" id="album-art" data-icon="music"></div>
-        <div class="track-info">
-            <div class="track-name" id="track">--</div>
-            <div class="track-artist" id="artist">--</div>
-       </div>
-        <!-- Barra de progresso: toque salta para a posição (seek). -->
-        <div class="progress-container" id="progress-container" onclick="seekTo(event)">
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
+        <div class="music-cols">
+            <div class="music-player" style="--app:#1db954">
+                <div class="album-art" id="album-art" data-icon="music"></div>
+                <div class="track-info">
+                    <div class="track-name" id="track">--</div>
+                    <div class="track-artist" id="artist">--</div>
+                </div>
+                <!-- Barra de progresso: toque salta para a posição (seek). -->
+                <div class="progress-container" id="progress-container" onclick="seekTo(event)">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="progress-times">
+                    <span id="time-current">0:00</span>
+                    <span id="time-total">--:--</span>
+                </div>
+                <div class="controls">
+                    <button class="ctrl-btn ctrl-btn-sm" id="shuffle-btn" data-icon="shuffle" onclick="toggleShuffle()"></button>
+                    <button class="ctrl-btn" data-icon="prev" onclick="prevTrack()"></button>
+                    <button class="ctrl-btn play-btn" id="play-btn" data-icon="play" onclick="togglePlay()"></button>
+                    <button class="ctrl-btn" data-icon="next" onclick="nextTrack()"></button>
+                    <button class="ctrl-btn ctrl-btn-sm" id="repeat-btn" data-icon="repeat" onclick="toggleRepeat()"></button>
+                </div>
+                <div class="volume-row">
+                    <span data-icon="volume"></span>
+                    <input type="range" min="0" max="100" value="50" id="volume-slider"
+                           class="volume-slider" oninput="setVolume(this.value)">
+                </div>
+                <div class="player-actions">
+                    <!-- Voz: usa o reconhecimento do browser (kiosk Chromium) e envia o
+                         texto para /voice/command. Escondido se o browser não suportar. -->
+                    <button class="ctrl-btn ctrl-btn-sm hidden" id="voice-btn" data-icon="mic" onclick="startVoice()"></button>
+                    <button class="bt-connect-btn" onclick="makeDiscoverable()"><span data-icon="bluetooth"></span> Ligar Bluetooth</button>
+                </div>
+            </div>
+            <div class="music-lyrics">
+                <div class="panel-title"><span data-icon="mic"></span> Letra</div>
+                <div class="lyrics-container" id="lyrics-container">
+                    <div class="lyrics-line">Letra não disponível</div>
+                </div>
             </div>
         </div>
-        <div class="progress-times">
-            <span id="time-current">0:00</span>
-            <span id="time-total">--:--</span>
-        </div>
-        <div class="controls">
-            <button class="ctrl-btn ctrl-btn-sm" id="shuffle-btn" data-icon="shuffle" onclick="toggleShuffle()"></button>
-            <button class="ctrl-btn" data-icon="prev" onclick="prevTrack()"></button>
-            <button class="ctrl-btn play-btn" id="play-btn" data-icon="play" onclick="togglePlay()"></button>
-            <button class="ctrl-btn" data-icon="next" onclick="nextTrack()"></button>
-            <button class="ctrl-btn ctrl-btn-sm" id="repeat-btn" data-icon="repeat" onclick="toggleRepeat()"></button>
-       </div>
-        <!-- Voz: usa o reconhecimento do browser (kiosk Chromium) e envia o
-             texto para /voice/command. Escondido se o browser não suportar. -->
-        <button class="ctrl-btn ctrl-btn-sm hidden" id="voice-btn" data-icon="mic" onclick="startVoice()"></button>
-        <div class="volume-row">
-            <span data-icon="volume"></span>
-            <input type="range" min="0" max="100" value="50" id="volume-slider"
-                   class="volume-slider" oninput="setVolume(this.value)">
-        </div>
-        <div class="lyrics-container" id="lyrics-container">
-            <div class="lyrics-line"><span data-icon="mic"></span> Letra não disponível</div>
-       </div>
-        <button class="bt-connect-btn" onclick="makeDiscoverable()"><span data-icon="bluetooth"></span> Ligar Bluetooth</button>
-   </div>
+    </div>
 </div>
 
 <!-- Câmara de marcha-atrás -->
 <div class="screen hidden" id="screen-camera">
     <div class="vehicle-page">
-        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>Câmara</h2>
+        <div class="page-head">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <h2><span data-icon="camera"></span> Câmara</h2>
+        </div>
         <div class="camera-view" id="camera-view">
             <div class="muted">Câmara indisponível (requer hardware)</div>
         </div>
@@ -113,15 +137,18 @@
 <div class="screen hidden" id="screen-phone">
     <div class="phone-page">
         <div class="phone-left">
-            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <div class="page-head">
+                <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            </div>
             <input type="text" id="dial-number" class="dial-number" readonly placeholder="Número">
             <div class="dialpad" id="dialpad"></div>
             <div class="dial-actions">
                 <button class="dial-call" onclick="dialNumber()"><span data-icon="phone"></span> Ligar</button>
-                <button class="dial-back" onclick="dialBackspace()">⌫</button>
+                <button class="dial-back" onclick="dialBackspace()" aria-label="Apagar"><span data-icon="back"></span></button>
             </div>
         </div>
         <div class="phone-right">
+            <div class="panel-title"><span data-icon="phone"></span> Contactos</div>
             <input type="text" id="contact-search" class="contact-search" placeholder="Procurar contacto..." oninput="filterContacts(this.value)">
             <div class="contacts-list" id="contacts-list"><span class="muted">A carregar contactos...</span></div>
         </div>
@@ -131,6 +158,7 @@
 <!-- Chamada a tocar / em curso: sobrepõe-se a qualquer ecrã (preenchido por JS) -->
 <div class="call-modal hidden" id="call-modal">
     <div class="call-card">
+        <div class="call-avatar" data-icon="phone"></div>
         <div class="call-name" id="call-name">--</div>
         <div class="call-number" id="call-number"></div>
         <div class="call-state" id="call-state"></div>
@@ -145,13 +173,15 @@
 <!-- OBD2 -->
 <div class="screen hidden" id="screen-obd">
     <div class="vehicle-page">
-        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>OBD2</h2>
+        <div class="page-head">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <h2><span data-icon="car"></span> OBD2</h2>
+        </div>
         <div class="gauges">
-            <div class="gauge"><div class="gauge-val" id="obd-rpm">--</div><div class="gauge-lbl">RPM</div></div>
-            <div class="gauge"><div class="gauge-val" id="obd-speed">--</div><div class="gauge-lbl">km/h</div></div>
-            <div class="gauge"><div class="gauge-val" id="obd-coolant">--</div><div class="gauge-lbl">Temp °C</div></div>
-            <div class="gauge"><div class="gauge-val" id="obd-fuel">--</div><div class="gauge-lbl">Combustível %</div></div>
+            <div class="gauge" style="--app:#ef5350"><div class="gauge-val" id="obd-rpm">--</div><div class="gauge-lbl">RPM</div></div>
+            <div class="gauge" style="--app:#3b82f6"><div class="gauge-val" id="obd-speed">--</div><div class="gauge-lbl">km/h</div></div>
+            <div class="gauge" style="--app:#f5a623"><div class="gauge-val" id="obd-coolant">--</div><div class="gauge-lbl">Temp °C</div></div>
+            <div class="gauge" style="--app:#1db954"><div class="gauge-val" id="obd-fuel">--</div><div class="gauge-lbl">Combustível %</div></div>
         </div>
         <div class="muted" id="obd-note">Sem ligação ao adaptador ELM327.</div>
     </div>
@@ -160,8 +190,10 @@
 <!-- Clima (IR) -->
 <div class="screen hidden" id="screen-climate">
     <div class="vehicle-page">
-        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>Clima</h2>
+        <div class="page-head">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <h2><span data-icon="climate"></span> Clima</h2>
+        </div>
         <div class="climate-buttons" id="climate-buttons">
             <div class="muted">Nenhum comando IR aprendido.</div>
         </div>
@@ -172,41 +204,45 @@
 <!-- Página de definições -->
 <div class="screen hidden" id="screen-settings">
     <div class="settings-page">
-        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>Definições</h2>
-        <div class="setting-item">
-            <span>Tema</span>
-            <div class="theme-switch" id="theme-switch">
-                <button data-theme-mode="auto" onclick="setTheme('auto')">Auto</button>
-                <button data-theme-mode="day" onclick="setTheme('day')">Dia</button>
-                <button data-theme-mode="night" onclick="setTheme('night')">Noite</button>
+        <div class="page-head">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <h2><span data-icon="settings"></span> Definições</h2>
+        </div>
+        <div class="settings-grid">
+            <div class="setting-item">
+                <span>Tema</span>
+                <div class="theme-switch" id="theme-switch">
+                    <button data-theme-mode="auto" onclick="setTheme('auto')">Auto</button>
+                    <button data-theme-mode="day" onclick="setTheme('day')">Dia</button>
+                    <button data-theme-mode="night" onclick="setTheme('night')">Noite</button>
+                </div>
             </div>
-       </div>
-        <div class="setting-item">
-            <span>Dispositivo Bluetooth</span>
-            <span id="bt-device-name">--</span>
-       </div>
-        <div class="setting-item">
-            <span>Fonte de áudio</span>
-            <div class="theme-switch" id="source-switch">
-                <button data-source="bluetooth" onclick="setSource('bluetooth')">Bluetooth</button>
-                <button data-source="aux" onclick="setSource('aux')">AUX</button>
-                <button data-source="usb" onclick="setSource('usb')">USB</button>
+            <div class="setting-item">
+                <span>Fonte de áudio</span>
+                <div class="theme-switch" id="source-switch">
+                    <button data-source="bluetooth" onclick="setSource('bluetooth')">Bluetooth</button>
+                    <button data-source="aux" onclick="setSource('aux')">AUX</button>
+                    <button data-source="usb" onclick="setSource('usb')">USB</button>
+                </div>
             </div>
-       </div>
-        <div class="setting-item setting-col">
-            <span>Dispositivos emparelhados</span>
-            <div class="device-list" id="device-list"><span class="muted">--</span></div>
-       </div>
-        <div class="setting-item">
-            <span>Versão</span>
-            <span id="app-version">--</span>
-       </div>
-        <div class="setting-item">
-            <span>Atualizar (OTA)</span>
-            <button class="bt-connect-btn" onclick="runUpdate()"><span data-icon="refresh"></span> Atualizar</button>
-       </div>
-   </div>
+            <div class="setting-item">
+                <span>Dispositivo Bluetooth</span>
+                <span id="bt-device-name">--</span>
+            </div>
+            <div class="setting-item">
+                <span>Versão</span>
+                <span id="app-version">--</span>
+            </div>
+            <div class="setting-item setting-col setting-wide">
+                <span>Dispositivos emparelhados</span>
+                <div class="device-list" id="device-list"><span class="muted">--</span></div>
+            </div>
+            <div class="setting-item setting-wide">
+                <span>Atualizar (OTA)</span>
+                <button class="bt-connect-btn" onclick="runUpdate()"><span data-icon="refresh"></span> Atualizar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="/static/js/app.js"></script>

@@ -94,13 +94,14 @@ sudo apt install -y \
     playerctl \
     chromium \
     xserver-xorg xinit \
-    ofono obexd-client python3-dbus \
+    obexd-client python3-dbus \
     libgpiod-dev gpiod \
     git python3-venv python3-dev build-essential
 ```
 
-- `ofono` + `obexd-client` + `python3-dbus`: telefone mãos-livres (HFP) — controlo de
-  chamadas via oFono e lista telefónica via PBAP (ver §10).
+- `obexd-client` + `python3-dbus`: telefone mãos-livres (HFP) — lista telefónica via PBAP
+  e controlo de chamadas via D-Bus. O HFP em si vem da *telephony nativa do PipeWire*
+  (não precisa do daemon oFono). Setup e detalhes em [`PHONE.md`](PHONE.md) e §10.
 
 ### 3.1 Validação
 
@@ -245,27 +246,27 @@ playerctl metadata
 
 ## Telefone mãos-livres (HFP + PBAP)
 
-O telefone (atender/recusar/marcar + contactos) usa **oFono** para controlo de chamadas e
-**obexd** (PBAP) para a lista telefónica. Instalados na §3.
+O controlo de chamadas (atender/recusar/desligar/marcar/mute + caller ID) vem da
+**telephony nativa do PipeWire**, que expõe a API compatível `org.ofono` no system bus.
+A lista telefónica vem do **obexd** (PBAP). **Não** é preciso o daemon oFono.
 
 ```bash
-sudo systemctl enable --now ofono            # regista o perfil HFP HF
-systemctl --user enable --now obex           # cliente OBEX/PBAP (sessão)
+bash scripts/phone/setup-hfp.sh     # WirePlumber + política D-Bus + reinício
 ```
 
-- Quando um telemóvel emparelhado liga, o BlueZ entrega o HFP ao oFono, que expõe um modem
-  em `org.ofono` (chamadas, identificação do chamador, marcar). Verificar:
-  ```bash
-  dbus-send --system --print-reply --dest=org.ofono / org.ofono.Manager.GetModems
-  ```
-- **Contactos (PBAP):** no telemóvel, autorizar o acesso à lista de contactos quando o carro
-  pedir (alguns Android pedem "Partilhar contactos" no emparelhamento).
-- **Áudio da chamada (SCO):** encaminhar o áudio HFP para os altifalantes/microfone do carro
-  é um passo de *tuning* de PulseAudio/PipeWire específico do hardware — marcado como TODO
-  em `backend/services/audio.py` (`set_source`). O controlo de chamada funciona
-  independentemente disto.
+Depois **religar o Bluetooth no telemóvel** e confirmar o modem:
 
-Off-Pi (ou sem oFono/telemóvel) os endpoints `/phone/*` devolvem `available: false` sem
+```bash
+dbus-send --system --print-reply --dest=org.ofono / org.ofono.Manager.GetModems
+```
+
+- **Contactos (PBAP):** no telemóvel, autorizar "partilhar contactos / acesso à lista
+  telefónica" para o dispositivo emparelhado (senão falha com OBEX `0x53`).
+- **Áudio da chamada (SCO):** encaminhado pelo PipeWire native; o nível/rota podem precisar
+  de afinação no hardware (ver TODOs em [`PHONE.md`](PHONE.md)).
+
+Documentação completa da feature, arquitetura e troubleshooting: [`PHONE.md`](PHONE.md).
+Off-Pi (sem telemóvel/telephony) os endpoints `/phone/*` devolvem `available: false` sem
 rebentar.
 
 ---
@@ -279,7 +280,7 @@ cd ~/AveoOS
 git pull
 source .venv/bin/activate
 pip install -r requirements.txt
-sudo systemctl restart aveoos-backend
+sudo systemctl restart aveoos
 ```
 
 ### Logs
