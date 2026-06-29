@@ -75,6 +75,18 @@ class PhoneService:
         import dbus  # local: ausência de python3-dbus não derruba o import
         return dbus.SystemBus()
 
+    def _session_bus(self):
+        """Bus de sessão do utilizador (onde vive o obexd/PBAP). O backend
+        corre como serviço de sistema sem DBUS_SESSION_BUS_ADDRESS, por isso
+        descobrimos o endereço como o serviço Bluetooth faz."""
+        import dbus
+
+        from backend.core.runtime import dbus_session_env
+        addr = dbus_session_env().get("DBUS_SESSION_BUS_ADDRESS")
+        if addr:
+            return dbus.bus.BusConnection(addr)
+        return dbus.SessionBus()
+
     def _modem_calls(self):
         """[(call_path, props)] da primeira modem oFono, ou []."""
         import dbus
@@ -180,7 +192,7 @@ class PhoneService:
 
         import dbus
 
-        bus = dbus.SessionBus()
+        bus = self._session_bus()
         mac = self._connected_mac()
         if not mac:
             raise RuntimeError("sem telemóvel ligado")
