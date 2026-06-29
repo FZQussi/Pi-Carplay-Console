@@ -99,6 +99,7 @@ function showScreen(id) {
     else if (id === 'screen-settings') loadSettingsScreen();
     else if (id === 'screen-camera') openCamera();
     else if (id === 'screen-obd') { loadObd(); screenTimer = setInterval(loadObd, 1000); }
+    else if (id === 'screen-maps') loadMaps();
     else if (id === 'screen-phone') loadPhone();
     else if (id === 'screen-climate') loadClimate();
 }
@@ -548,21 +549,22 @@ async function loadObd() {
     } catch (e) { console.error("Erro OBD:", e); }
 }
 
-// === Mapas: abre o Google Maps (site real) numa janela Chromium própria ===
-// O botão "Painel" na barra de topo (visível só com o Maps aberto) chama
-// returnFromMaps() para voltar ao dashboard sem fechar o Maps.
-async function openMaps() {
+// === Mapas: Google Maps embebido (screen interna) ========================
+// Carrega o iframe só na 1ª abertura. Como a screen fica no DOM (só
+// escondida), o iframe não recarrega ao voltar — mantém zoom/posição.
+// ponytail: o USB GPS (gpsd) NÃO move o ponto azul do Google — a
+// geolocalização do Chromium é separada. Centramos no fix inicial e basta.
+let mapsLoaded = false;
+async function loadMaps() {
+    if (mapsLoaded) return;
+    mapsLoaded = true;
+    let center = "";
     try {
-        await fetch("/maps/open", { method: "POST" });
-        document.getElementById("maps-return").classList.remove("hidden");
-    } catch (e) { console.error("Erro a abrir Maps:", e); }
-}
-
-async function returnFromMaps() {
-    try {
-        await fetch("/maps/hide", { method: "POST" });
-    } catch (e) { console.error("Erro a voltar do Maps:", e); }
-    document.getElementById("maps-return").classList.add("hidden");
+        const p = await (await fetch("/gps/position")).json();
+        if (p.lat != null && p.lon != null) center = `&q=${p.lat},${p.lon}`;
+    } catch (e) { /* sem fix: o embed abre num centro por defeito */ }
+    document.getElementById("maps-frame").src =
+        `https://maps.google.com/maps?z=15&output=embed${center}`;
 }
 
 // === Telefone (HFP): dialpad, contactos, chamada =========================

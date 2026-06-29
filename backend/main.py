@@ -31,7 +31,6 @@ from backend.api.bluetooth import router as bluetooth_router
 from backend.api.camera import router as camera_router
 from backend.api.climate import router as climate_router
 from backend.api.gps import router as gps_router
-from backend.api.maps import router as maps_router
 from backend.api.music import router as music_router
 from backend.api.phone import router as phone_router
 from backend.api.obd import router as obd_router
@@ -149,7 +148,6 @@ app.include_router(obd_router)
 app.include_router(gps_router)
 app.include_router(climate_router)
 app.include_router(voice_router)
-app.include_router(maps_router)
 app.include_router(phone_router)
 
 

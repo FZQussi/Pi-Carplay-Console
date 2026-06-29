@@ -16,10 +16,6 @@
 <div class="top-bar">
     <div id="time">00:00</div>
     <div class="top-bar-right">
-        <!-- Aparece só com o Maps aberto: volta ao painel sem fechar o Maps. -->
-        <button id="maps-return" class="maps-return hidden" onclick="returnFromMaps()">
-            <span data-icon="back"></span> Painel
-        </button>
         <!-- Indicador de sistema: só aparece quando há temperatura alta
              ou aviso de undervoltage/throttle (preenchido por JS). -->
         <div id="sys-status" class="hidden"></div>
@@ -38,7 +34,7 @@
             <div class="app-icon-img" data-icon="camera"></div>
             <div class="app-icon-label">Câmara</div>
        </div>
-        <div class="app-icon" onclick="openMaps()">
+        <div class="app-icon" onclick="showScreen('screen-maps')">
             <div class="app-icon-img" data-icon="navigation"></div>
             <div class="app-icon-label">Navegação</div>
        </div>
@@ -110,6 +106,15 @@
         <div class="camera-view" id="camera-view">
             <div class="muted">Câmara indisponível (requer hardware)</div>
         </div>
+    </div>
+</div>
+
+<!-- Navegação: Google Maps embebido. A screen fica no DOM mesmo escondida,
+     por isso o iframe não recarrega ao voltar (mantém zoom/posição). -->
+<div class="screen hidden" id="screen-maps">
+    <div class="maps-page">
+        <button class="maps-back" onclick="showScreen('screen-home')"><span data-icon="back"></span> Painel</button>
+        <iframe id="maps-frame" class="maps-frame" allow="geolocation" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
 </div>
 

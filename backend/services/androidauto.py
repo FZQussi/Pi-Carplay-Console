@@ -19,8 +19,6 @@ import signal
 import subprocess
 from pathlib import Path
 
-from backend.core.runtime import gui_env
-
 # Sítios onde o binário do OpenAuto costuma ficar após o build/instalação.
 OPENAUTO_CANDIDATES = [
     "/usr/local/bin/autoapp",
@@ -34,6 +32,17 @@ def _binary() -> str | None:
         if os.path.exists(candidate):
             return candidate
     return shutil.which("autoapp")
+
+
+def _gui_env() -> dict:
+    """Ambiente para lançar uma app GUI a partir do serviço. O OpenAuto é
+    um cliente X, por isso precisa do DISPLAY (e do XAUTHORITY) da sessão."""
+    env = dict(os.environ)
+    env.setdefault("DISPLAY", ":0")
+    xauth = Path.home() / ".Xauthority"
+    if xauth.exists():
+        env.setdefault("XAUTHORITY", str(xauth))
+    return env
 
 
 class AndroidAutoService:
@@ -57,7 +66,7 @@ class AndroidAutoService:
         if self._running():
             return {"status": "ok", "running": True}
         try:
-            self._proc = subprocess.Popen([binary], env=gui_env())
+            self._proc = subprocess.Popen([binary], env=_gui_env())
             return {"status": "ok", "running": True}
         except Exception as e:
             return {"status": "error", "error": str(e)}

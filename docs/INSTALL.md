@@ -93,15 +93,12 @@ sudo apt install -y \
     alsa-utils \
     playerctl \
     chromium \
-    xserver-xorg xinit openbox wmctrl \
+    xserver-xorg xinit \
     ofono obexd-client python3-dbus \
     libgpiod-dev gpiod \
     git python3-venv python3-dev build-essential
 ```
 
-- `openbox` + `wmctrl`: window manager mínimo e controlo de janelas. Necessários para o
-  Maps (janela Chromium do Google Maps) coexistir com o dashboard e ser levantado/baixado
-  pelo backend (ver §8 e `backend/services/maps.py`).
 - `ofono` + `obexd-client` + `python3-dbus`: telefone mãos-livres (HFP) — controlo de
   chamadas via oFono e lista telefónica via PBAP (ver §10).
 
@@ -202,12 +199,10 @@ sudo systemctl status aveoos-backend
 
 ---
 
-## 8. Kiosk mode (Chromium + window manager)
+## 8. Kiosk mode (Chromium)
 
-O script já vive em `scripts/kiosk/aveoos-kiosk.sh`. Arranca um WM mínimo (`openbox`) e
-depois o Chromium do dashboard com `--class=aveoos-dash`. O WM é **obrigatório**: sem ele
-só havia uma janela fullscreen e o Maps (janela própria do Google Maps, levantada/baixada
-pelo backend via `wmctrl`) não podia alternar com o dashboard.
+O script vive em `scripts/kiosk/aveoos-kiosk.sh` — lança o Chromium em modo kiosk a apontar
+para o backend.
 
 ```bash
 chmod +x scripts/kiosk/aveoos-kiosk.sh
@@ -217,10 +212,10 @@ Tornar executável e configurar autostart. Para V1 com auto-login CLI, usar
 `~/.bash_profile` para chamar `startx` que por sua vez executa o script kiosk. Detalhes
 XFCE/LXDE autostart dependem do setup — ver `DEVELOPMENT.md` se necessário.
 
-> **Maps / GPS:** o botão *Navegação* abre o `maps.google.com` real numa janela própria,
-> posicionada por baixo da barra de topo do dashboard (que fica sempre visível com o botão
-> *Painel* para voltar sem fechar o Maps). Nota: o módulo USB GPS (gpsd) **não** alimenta o
-> ponto azul do Google Maps — a geolocalização do Chromium é separada (IP/Google).
+> **Maps / GPS:** o botão *Navegação* abre uma screen interna com o Google Maps embebido
+> (iframe) e um botão *Painel* sobreposto para voltar — sem janelas extra. Nota: o módulo
+> USB GPS (gpsd) **não** alimenta o ponto azul do Google Maps (a geolocalização do Chromium
+> é separada); centramos o mapa no fix inicial do gpsd quando existe.
 
 ---
 
@@ -304,7 +299,7 @@ Para detalhes de debugging, ver [`DEVELOPMENT.md`](DEVELOPMENT.md).
 | `bluetoothctl: Permission denied` | utilizador fora do grupo | `sudo usermod -aG bluetooth <user>` |
 | Música toca mas UI mostra "Sem Bluetooth" | `playerctl` não vê DBus da sessão | confirmar `DBUS_SESSION_BUS_ADDRESS` no service |
 | Chromium abre mas o ecrã pisca | GPU mem insuficiente | raspi-config → GPU mem = 64 MB+ |
-| Botão *Painel* não volta ao dashboard | sem WM ou `wmctrl` em falta | confirmar `openbox` ativo e `wmctrl` instalado (§3, §8) |
+| Mapa não carrega (página em branco) | sem rede / Google indisponível | confirmar ligação à internet; o embed precisa de rede |
 | Telefone mostra "sem contactos" | PBAP não autorizado no telemóvel | autorizar partilha de contactos; confirmar `obex` user service ativo |
 | Chamada sem áudio | encaminhamento SCO não configurado | tuning PulseAudio/PipeWire (TODO hardware, ver Telefone HFP) |
 | Reinício do Pi a cada loop | GPIO ACC mal dimensionado (V2) | filtrar hardware, ver HARDWARE.md |

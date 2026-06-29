@@ -12,7 +12,6 @@ from backend.services.gps import GPSService
 from backend.services.climate import ClimateService
 from backend.services.voice import VoiceService
 from backend.services.update import UpdateService
-from backend.services.maps import MapsService
 from backend.services.phone import PhoneService
 
 # Pacote `services`. Re-exporta as classes públicas e os singletons.
@@ -20,10 +19,10 @@ __all__ = [
     "MusicService", "BluetoothService", "SystemService", "SettingsService",
     "PowerService", "AudioService", "CameraService", "OBDService",
     "GPSService", "ClimateService", "VoiceService", "UpdateService",
-    "MapsService", "PhoneService",
+    "PhoneService",
     "get_music", "get_bluetooth", "get_system", "get_settings",
     "get_power", "get_audio", "get_camera", "get_obd", "get_gps",
-    "get_climate", "get_voice", "get_update", "get_maps", "get_phone",
+    "get_climate", "get_voice", "get_update", "get_phone",
 ]
 
 
@@ -85,11 +84,6 @@ def get_voice() -> VoiceService:
 @lru_cache(maxsize=1)
 def get_update() -> UpdateService:
     return UpdateService()
-
-
-@lru_cache(maxsize=1)
-def get_maps() -> MapsService:
-    return MapsService()
 
 
 @lru_cache(maxsize=1)
