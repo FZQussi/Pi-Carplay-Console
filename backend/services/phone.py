@@ -15,7 +15,9 @@ ao `audio.py:set_source`) — não bloqueia o controlo de chamada.
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 
 # Estados do oFono que consideramos "uma chamada a tocar para atender".
 _INCOMING = {"incoming", "waiting"}
@@ -184,6 +186,31 @@ class PhoneService:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
+    def _wp_env(self) -> dict:
+        """Ambiente para o wpctl alcançar o PipeWire da sessão. O backend
+        corre como serviço de sistema (uid do consola), por isso aponta o
+        XDG_RUNTIME_DIR para o runtime desse uid."""
+        env = dict(os.environ)
+        env["XDG_RUNTIME_DIR"] = f"/run/user/{os.getuid()}"
+        return env
+
+    def mute(self, on: bool | None = None) -> dict:
+        """Mute/unmute do microfone da chamada (toggle se on=None).
+
+        Em HFP o que o outro lado ouve é o microfone do Pi a ir para o
+        telefone; silenciar a fonte de captura = mute para o chamador."""
+        target = "@DEFAULT_AUDIO_SOURCE@"
+        arg = "toggle" if on is None else ("1" if on else "0")
+        try:
+            env = self._wp_env()
+            subprocess.run(["wpctl", "set-mute", target, arg],
+                           env=env, capture_output=True, timeout=5)
+            out = subprocess.run(["wpctl", "get-volume", target],
+                                 env=env, capture_output=True, text=True, timeout=5).stdout
+            return {"status": "ok", "muted": "MUTED" in out}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
     def contacts(self) -> dict:
         try:
             self._contacts = self._pull_phonebook()
@@ -221,15 +248,24 @@ class PhoneService:
             tprops = dbus.Interface(bus.get_object("org.bluez.obex", transfer),
                                     "org.freedesktop.DBus.Properties")
             for _ in range(100):  # ~10s máx
-                status = str(tprops.Get("org.bluez.obex.Transfer1", "Status"))
-                if status == "complete":
+                try:
+                    status = str(tprops.Get("org.bluez.obex.Transfer1", "Status"))
+                except dbus.exceptions.DBusException:
+                    # Objeto desapareceu: a transferência terminou e o obexd já
+                    # removeu o Transfer1 (acontece com listas pequenas/rápidas).
                     break
-                if status == "error":
-                    raise RuntimeError("transferência PBAP falhou")
+                if status in ("complete", "error"):
+                    break
                 time.sleep(0.1)
 
-            with open(filename, "r", encoding="utf-8", errors="ignore") as fh:
-                return parse_vcards(fh.read())
+            # Pequena folga para o ficheiro acabar de ser escrito.
+            time.sleep(0.2)
+            try:
+                with open(filename, "r", encoding="utf-8", errors="ignore") as fh:
+                    # Só contactos marcáveis (descarta o cartão do dono sem nº).
+                    return [c for c in parse_vcards(fh.read()) if c["number"]]
+            except FileNotFoundError:
+                return []
         finally:
             try:
                 client.RemoveSession(session)

@@ -32,3 +32,8 @@ def hangup():
 @router.post("/dial")
 def dial(number: str):
     return get_phone().dial(number)
+
+
+@router.post("/mute")
+def mute():
+    return get_phone().mute()
