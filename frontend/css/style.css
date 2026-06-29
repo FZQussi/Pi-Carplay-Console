@@ -563,3 +563,166 @@ body {
     font-weight: bold;
     transform: scale(1.05);
 }
+
+/* Botão "Painel" na barra de topo — só visível com o Maps aberto. */
+.maps-return {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+/* Telefone (HFP) */
+.phone-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 32px;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.phone-page h2 { color: var(--accent); font-size: 1.5rem; }
+
+.dial-number {
+    width: 100%;
+    max-width: 360px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 1.5rem;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.dialpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.dial-key {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 50%;
+    aspect-ratio: 1;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.15s;
+}
+
+.dial-key:active { transform: scale(0.92); background: var(--surface-active); }
+
+.dial-actions {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    width: 100%;
+    max-width: 360px;
+}
+
+.dial-call {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 16px;
+    padding: 12px;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.dial-call:active { background: var(--accent-active); }
+
+.dial-back {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 16px;
+    padding: 12px 18px;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.contact-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.contact-row:active { background: var(--surface-active); }
+.contact-number { color: var(--text-dim); font-size: 0.85rem; }
+
+/* Modal de chamada — sobrepõe-se a tudo. */
+.call-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.call-name { font-size: 2rem; font-weight: 700; color: var(--text); }
+.call-number { font-size: 1.1rem; color: var(--text-dim); }
+.call-state { font-size: 1rem; color: var(--accent); }
+
+.call-buttons { display: flex; gap: 40px; margin-top: 20px; }
+
+.call-accept, .call-decline {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: none;
+    color: #fff;
+    font-size: 1.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-accept { background: var(--accent); color: #000; }
+.call-decline { background: #e5484d; }
+.call-accept:active, .call-decline:active { transform: scale(0.92); }

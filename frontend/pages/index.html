@@ -16,6 +16,10 @@
 <div class="top-bar">
     <div id="time">00:00</div>
     <div class="top-bar-right">
+        <!-- Aparece só com o Maps aberto: volta ao painel sem fechar o Maps. -->
+        <button id="maps-return" class="maps-return hidden" onclick="returnFromMaps()">
+            <span data-icon="back"></span> Painel
+        </button>
         <!-- Indicador de sistema: só aparece quando há temperatura alta
              ou aviso de undervoltage/throttle (preenchido por JS). -->
         <div id="sys-status" class="hidden"></div>
@@ -34,9 +38,13 @@
             <div class="app-icon-img" data-icon="camera"></div>
             <div class="app-icon-label">Câmara</div>
        </div>
-        <div class="app-icon" onclick="showScreen('screen-nav')">
+        <div class="app-icon" onclick="openMaps()">
             <div class="app-icon-img" data-icon="navigation"></div>
             <div class="app-icon-label">Navegação</div>
+       </div>
+        <div class="app-icon" onclick="showScreen('screen-phone')">
+            <div class="app-icon-img" data-icon="phone"></div>
+            <div class="app-icon-label">Telefone</div>
        </div>
         <div class="app-icon" onclick="showScreen('screen-obd')">
             <div class="app-icon-img" data-icon="car"></div>
@@ -105,17 +113,31 @@
     </div>
 </div>
 
-<!-- Navegação -->
-<div class="screen hidden" id="screen-nav">
-    <div class="vehicle-page">
+<!-- Telefone (HFP) -->
+<div class="screen hidden" id="screen-phone">
+    <div class="phone-page">
         <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>Navegação</h2>
-        <div class="gauges">
-            <div class="gauge"><div class="gauge-val" id="gps-lat">--</div><div class="gauge-lbl">Latitude</div></div>
-            <div class="gauge"><div class="gauge-val" id="gps-lon">--</div><div class="gauge-lbl">Longitude</div></div>
-            <div class="gauge"><div class="gauge-val" id="gps-speed">--</div><div class="gauge-lbl">Velocidade</div></div>
+        <h2>Telefone</h2>
+        <input type="text" id="dial-number" class="dial-number" readonly placeholder="Número">
+        <div class="dialpad" id="dialpad"></div>
+        <div class="dial-actions">
+            <button class="dial-call" onclick="dialNumber()"><span data-icon="phone"></span> Ligar</button>
+            <button class="dial-back" onclick="dialBackspace()">⌫</button>
         </div>
-        <div class="muted" id="gps-note">Sem fix GPS. Mapas offline (tiles) são um asset à parte — ver FEATURE-PLAN.</div>
+        <div class="contacts-list" id="contacts-list"><span class="muted">A carregar contactos...</span></div>
+    </div>
+</div>
+
+<!-- Chamada a tocar / em curso: sobrepõe-se a qualquer ecrã (preenchido por JS) -->
+<div class="call-modal hidden" id="call-modal">
+    <div class="call-card">
+        <div class="call-name" id="call-name">--</div>
+        <div class="call-number" id="call-number"></div>
+        <div class="call-state" id="call-state"></div>
+        <div class="call-buttons">
+            <button class="call-accept" id="call-accept" onclick="answerCall()"><span data-icon="phone"></span></button>
+            <button class="call-decline" onclick="hangupCall()"><span data-icon="phone-hangup"></span></button>
+        </div>
     </div>
 </div>
 

@@ -16,7 +16,7 @@ client = TestClient(app)
 
 def test_status_has_all_blocks():
     body = client.get("/status").json()
-    assert set(body) == {"bluetooth", "music", "system"}
+    assert set(body) == {"bluetooth", "music", "phone", "system"}
 
 
 def test_ping():

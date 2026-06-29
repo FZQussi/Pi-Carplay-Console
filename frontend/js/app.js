@@ -29,6 +29,8 @@ const ICONS = {
     navigation: svgIcon("M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"),
     climate: svgIcon("M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22z"),
     refresh: svgIcon("M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"),
+    phone: svgIcon("M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"),
+    "phone-hangup": svgIcon("M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-1.78 1.78c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.66-1.85.998.998 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"),
 };
 
 // Preenche os slots estáticos (<... data-icon="nome">) uma vez ao carregar.
@@ -97,7 +99,7 @@ function showScreen(id) {
     else if (id === 'screen-settings') loadSettingsScreen();
     else if (id === 'screen-camera') openCamera();
     else if (id === 'screen-obd') { loadObd(); screenTimer = setInterval(loadObd, 1000); }
-    else if (id === 'screen-nav') { loadGps(); screenTimer = setInterval(loadGps, 1000); }
+    else if (id === 'screen-phone') loadPhone();
     else if (id === 'screen-climate') loadClimate();
 }
 
@@ -263,6 +265,7 @@ function applyStatus(data) {
         if (btDeviceName) btDeviceName.innerText = bt.device || "--";
 
         updateSystemIndicator(data.system);
+        updateCallModal(data.phone);
 
         const albumArt = document.getElementById("album-art");
 
@@ -545,14 +548,96 @@ async function loadObd() {
     } catch (e) { console.error("Erro OBD:", e); }
 }
 
-async function loadGps() {
+// === Mapas: abre o Google Maps (site real) numa janela Chromium própria ===
+// O botão "Painel" na barra de topo (visível só com o Maps aberto) chama
+// returnFromMaps() para voltar ao dashboard sem fechar o Maps.
+async function openMaps() {
     try {
-        const p = await (await fetch("/gps/position")).json();
-        document.getElementById("gps-lat").innerText = p.lat != null ? p.lat.toFixed(5) : "--";
-        document.getElementById("gps-lon").innerText = p.lon != null ? p.lon.toFixed(5) : "--";
-        document.getElementById("gps-speed").innerText = p.speed != null ? Math.round(p.speed * 3.6) + " km/h" : "--";
-        document.getElementById("gps-note").style.display = p.fix ? "none" : "block";
-    } catch (e) { console.error("Erro GPS:", e); }
+        await fetch("/maps/open", { method: "POST" });
+        document.getElementById("maps-return").classList.remove("hidden");
+    } catch (e) { console.error("Erro a abrir Maps:", e); }
+}
+
+async function returnFromMaps() {
+    try {
+        await fetch("/maps/hide", { method: "POST" });
+    } catch (e) { console.error("Erro a voltar do Maps:", e); }
+    document.getElementById("maps-return").classList.add("hidden");
+}
+
+// === Telefone (HFP): dialpad, contactos, chamada =========================
+function renderDialpad() {
+    const keys = ["1","2","3","4","5","6","7","8","9","*","0","#"];
+    document.getElementById("dialpad").innerHTML = keys
+        .map(k => `<button class="dial-key" onclick="dialPress('${k}')">${k}</button>`).join("");
+}
+
+function dialPress(k) {
+    document.getElementById("dial-number").value += k;
+}
+
+function dialBackspace() {
+    const el = document.getElementById("dial-number");
+    el.value = el.value.slice(0, -1);
+}
+
+async function dialNumber() {
+    const number = document.getElementById("dial-number").value.trim();
+    if (!number) return;
+    try {
+        await fetch(`/phone/dial?number=${encodeURIComponent(number)}`, { method: "POST" });
+    } catch (e) { console.error("Erro a marcar:", e); }
+}
+
+async function loadPhone() {
+    renderDialpad();
+    const list = document.getElementById("contacts-list");
+    try {
+        const d = await (await fetch("/phone/contacts")).json();
+        list.innerHTML = (d.contacts && d.contacts.length)
+            ? d.contacts.map(c => `
+                <div class="contact-row" onclick="dialContact('${(c.number||'').replace(/'/g,'')}')">
+                    <span class="contact-name">${c.name || c.number || "--"}</span>
+                    <span class="contact-number">${c.number || ""}</span>
+                </div>`).join("")
+            : `<span class="muted">Sem contactos (requer telemóvel ligado + PBAP).</span>`;
+    } catch (e) {
+        list.innerHTML = `<span class="muted">Erro a carregar contactos.</span>`;
+    }
+}
+
+async function dialContact(number) {
+    if (!number) return;
+    try {
+        await fetch(`/phone/dial?number=${encodeURIComponent(number)}`, { method: "POST" });
+    } catch (e) { console.error("Erro a ligar a contacto:", e); }
+}
+
+async function answerCall() {
+    try { await fetch("/phone/answer", { method: "POST" }); } catch (e) { console.error(e); }
+}
+
+async function hangupCall() {
+    try { await fetch("/phone/hangup", { method: "POST" }); } catch (e) { console.error(e); }
+}
+
+// Mostra/esconde o modal de chamada a partir do estado HFP (vem no /status
+// e no push WS). Aparece sobre qualquer ecrã enquanto houver chamada.
+function updateCallModal(phone) {
+    const modal = document.getElementById("call-modal");
+    if (!modal) return;
+    const call = (phone && phone.call) || {};
+    const state = call.state || "none";
+
+    if (state === "none") { modal.classList.add("hidden"); return; }
+
+    document.getElementById("call-name").innerText = call.name || call.number || "Desconhecido";
+    document.getElementById("call-number").innerText = call.name ? (call.number || "") : "";
+    const labels = { incoming: "A receber chamada...", dialing: "A marcar...", active: "Em chamada" };
+    document.getElementById("call-state").innerText = labels[state] || "";
+    // Botão de atender só faz sentido numa chamada a entrar.
+    document.getElementById("call-accept").style.display = state === "incoming" ? "" : "none";
+    modal.classList.remove("hidden");
 }
 
 async function loadClimate() {

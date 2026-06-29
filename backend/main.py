@@ -31,7 +31,9 @@ from backend.api.bluetooth import router as bluetooth_router
 from backend.api.camera import router as camera_router
 from backend.api.climate import router as climate_router
 from backend.api.gps import router as gps_router
+from backend.api.maps import router as maps_router
 from backend.api.music import router as music_router
+from backend.api.phone import router as phone_router
 from backend.api.obd import router as obd_router
 from backend.api.power import router as power_router
 from backend.api.settings import router as settings_router
@@ -39,7 +41,7 @@ from backend.api.system import router as system_router
 from backend.api.voice import router as voice_router
 from backend.core.config import FRONTEND_DIR, FRONTEND_PAGES_DIR
 from backend.core.ws import manager
-from backend.services import get_bluetooth, get_music, get_system
+from backend.services import get_bluetooth, get_music, get_phone, get_system
 
 logger = logging.getLogger("aveoos.main")
 
@@ -59,6 +61,7 @@ def build_status() -> dict:
     return {
         "bluetooth": get_bluetooth().get_status(),
         "music": get_music().get_current_track(),
+        "phone": get_phone().status(),
         "system": get_system().get_status(),
     }
 
@@ -146,6 +149,8 @@ app.include_router(obd_router)
 app.include_router(gps_router)
 app.include_router(climate_router)
 app.include_router(voice_router)
+app.include_router(maps_router)
+app.include_router(phone_router)
 
 
 @app.get("/")

@@ -28,5 +28,10 @@ class AudioService:
         return {"status": "ok", "source": source}
 
     def call_state(self) -> dict:
-        # TODO(hardware): ler estado HFP via BlueZ/oFono (org.ofono.VoiceCall).
-        return {"active": False, "number": None}
+        # Estado HFP real vem do PhoneService (oFono). Mantém a forma antiga
+        # {active, number} para quem ainda consome /audio/call.
+        from backend.services import get_phone
+
+        call = get_phone().status().get("call", {})
+        return {"active": call.get("state") in ("incoming", "dialing", "active"),
+                "number": call.get("number")}

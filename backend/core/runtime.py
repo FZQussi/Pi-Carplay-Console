@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import glob
 import os
+from pathlib import Path
 
 
 def dbus_session_env() -> dict[str, str]:
@@ -18,3 +19,14 @@ def dbus_session_env() -> dict[str, str]:
     if chosen:
         return {**os.environ, "DBUS_SESSION_BUS_ADDRESS": f"unix:path={chosen[0]}"}
     return dict(os.environ)
+
+
+def gui_env() -> dict[str, str]:
+    """Ambiente para lançar uma app GUI (cliente X) a partir do serviço.
+    Precisa do DISPLAY (e do XAUTHORITY) da sessão do kiosk."""
+    env = dict(os.environ)
+    env.setdefault("DISPLAY", ":0")
+    xauth = Path.home() / ".Xauthority"
+    if xauth.exists():
+        env.setdefault("XAUTHORITY", str(xauth))
+    return env

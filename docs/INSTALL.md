@@ -93,10 +93,17 @@ sudo apt install -y \
     alsa-utils \
     playerctl \
     chromium \
-    xserver-xorg xinit \
+    xserver-xorg xinit openbox wmctrl \
+    ofono obexd-client python3-dbus \
     libgpiod-dev gpiod \
     git python3-venv python3-dev build-essential
 ```
+
+- `openbox` + `wmctrl`: window manager mínimo e controlo de janelas. Necessários para o
+  Maps (janela Chromium do Google Maps) coexistir com o dashboard e ser levantado/baixado
+  pelo backend (ver §8 e `backend/services/maps.py`).
+- `ofono` + `obexd-client` + `python3-dbus`: telefone mãos-livres (HFP) — controlo de
+  chamadas via oFono e lista telefónica via PBAP (ver §10).
 
 ### 3.1 Validação
 
@@ -195,39 +202,25 @@ sudo systemctl status aveoos-backend
 
 ---
 
-## 8. Kiosk mode (Chromium)
+## 8. Kiosk mode (Chromium + window manager)
 
-Criar `scripts/kiosk/aveoos-kiosk.sh`:
+O script já vive em `scripts/kiosk/aveoos-kiosk.sh`. Arranca um WM mínimo (`openbox`) e
+depois o Chromium do dashboard com `--class=aveoos-dash`. O WM é **obrigatório**: sem ele
+só havia uma janela fullscreen e o Maps (janela própria do Google Maps, levantada/baixada
+pelo backend via `wmctrl`) não podia alternar com o dashboard.
 
 ```bash
-#!/usr/bin/env bash
-# Lança Chromium em kiosk apontando para o backend AveoOS.
-# Pensado para correr como sessão do utilizador (auto-login CLI + startx, ou LXDE autostart).
-
-set -e
-
-URL="${AVEOOS_URL:-http://localhost:8000}"
-
-# Esperar que o backend esteja disponível
-until curl -sf "$URL/status" >/dev/null 2>&1; do
-    echo "A esperar pelo backend em $URL..."
-    sleep 2
-done
-
-# Desligar cursor, screen blanking, dpms
-xset -dpms
-xset s off
-
-exec chromium \
-    --noerrdialogs \
-    --disable-infobars \
-    --kiosk "$URL" \
-    --autoplay-policy=no-user-gesture-required
+chmod +x scripts/kiosk/aveoos-kiosk.sh
 ```
 
+Tornar executável e configurar autostart. Para V1 com auto-login CLI, usar
+`~/.bash_profile` para chamar `startx` que por sua vez executa o script kiosk. Detalhes
+XFCE/LXDE autostart dependem do setup — ver `DEVELOPMENT.md` se necessário.
 
-
-Tornar executável e configurar autostart. Para V1 com auto-login CLI, usar `~/.bash_profile` para chamar `startx` que por sua vez executa o script kiosk. Detalhes XFCE/LXDE autostart dependem do setup — ver `DEVELOPMENT.md` se necessário.
+> **Maps / GPS:** o botão *Navegação* abre o `maps.google.com` real numa janela própria,
+> posicionada por baixo da barra de topo do dashboard (que fica sempre visível com o botão
+> *Painel* para voltar sem fechar o Maps). Nota: o módulo USB GPS (gpsd) **não** alimenta o
+> ponto azul do Google Maps — a geolocalização do Chromium é separada (IP/Google).
 
 ---
 
@@ -250,6 +243,33 @@ playerctl metadata
 # Verificar kiosk a abrir o UI
 # (no ecrã tátil — deve aparecer a dashboard AveoOS)
 ```
+
+---
+
+## Telefone mãos-livres (HFP + PBAP)
+
+O telefone (atender/recusar/marcar + contactos) usa **oFono** para controlo de chamadas e
+**obexd** (PBAP) para a lista telefónica. Instalados na §3.
+
+```bash
+sudo systemctl enable --now ofono            # regista o perfil HFP HF
+systemctl --user enable --now obex           # cliente OBEX/PBAP (sessão)
+```
+
+- Quando um telemóvel emparelhado liga, o BlueZ entrega o HFP ao oFono, que expõe um modem
+  em `org.ofono` (chamadas, identificação do chamador, marcar). Verificar:
+  ```bash
+  dbus-send --system --print-reply --dest=org.ofono / org.ofono.Manager.GetModems
+  ```
+- **Contactos (PBAP):** no telemóvel, autorizar o acesso à lista de contactos quando o carro
+  pedir (alguns Android pedem "Partilhar contactos" no emparelhamento).
+- **Áudio da chamada (SCO):** encaminhar o áudio HFP para os altifalantes/microfone do carro
+  é um passo de *tuning* de PulseAudio/PipeWire específico do hardware — marcado como TODO
+  em `backend/services/audio.py` (`set_source`). O controlo de chamada funciona
+  independentemente disto.
+
+Off-Pi (ou sem oFono/telemóvel) os endpoints `/phone/*` devolvem `available: false` sem
+rebentar.
 
 ---
 
@@ -284,4 +304,7 @@ Para detalhes de debugging, ver [`DEVELOPMENT.md`](DEVELOPMENT.md).
 | `bluetoothctl: Permission denied` | utilizador fora do grupo | `sudo usermod -aG bluetooth <user>` |
 | Música toca mas UI mostra "Sem Bluetooth" | `playerctl` não vê DBus da sessão | confirmar `DBUS_SESSION_BUS_ADDRESS` no service |
 | Chromium abre mas o ecrã pisca | GPU mem insuficiente | raspi-config → GPU mem = 64 MB+ |
+| Botão *Painel* não volta ao dashboard | sem WM ou `wmctrl` em falta | confirmar `openbox` ativo e `wmctrl` instalado (§3, §8) |
+| Telefone mostra "sem contactos" | PBAP não autorizado no telemóvel | autorizar partilha de contactos; confirmar `obex` user service ativo |
+| Chamada sem áudio | encaminhamento SCO não configurado | tuning PulseAudio/PipeWire (TODO hardware, ver Telefone HFP) |
 | Reinício do Pi a cada loop | GPIO ACC mal dimensionado (V2) | filtrar hardware, ver HARDWARE.md |
