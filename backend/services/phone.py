@@ -87,19 +87,33 @@ class PhoneService:
             return dbus.bus.BusConnection(addr)
         return dbus.SessionBus()
 
-    def _modem_calls(self):
-        """[(call_path, props)] da primeira modem oFono, ou []."""
+    @staticmethod
+    def _items(result):
+        """Normaliza GetModems/GetCalls para [(path, props)].
+
+        O oFono real devolve a(oa{sv}) (lista de structs); o backend nativo do
+        PipeWire devolve a{oa{sv}} (dicionário). Aceita os dois."""
+        if hasattr(result, "items"):          # dict (PipeWire)
+            return list(result.items())
+        return [(it[0], it[1]) for it in result]  # structs (oFono)
+
+    def _first_modem(self, bus):
         import dbus
-        bus = self._system_bus()
         manager = dbus.Interface(bus.get_object("org.ofono", "/"),
                                  "org.ofono.Manager")
-        modems = manager.GetModems()
-        if not modems:
+        modems = self._items(manager.GetModems())
+        return modems[0][0] if modems else None
+
+    def _modem_calls(self):
+        """[(call_path, props)] da primeira modem, ou []."""
+        import dbus
+        bus = self._system_bus()
+        path = self._first_modem(bus)
+        if not path:
             return []
-        modem_path = modems[0][0]
-        vcm = dbus.Interface(bus.get_object("org.ofono", modem_path),
+        vcm = dbus.Interface(bus.get_object("org.ofono", path),
                              "org.ofono.VoiceCallManager")
-        return list(vcm.GetCalls())
+        return self._items(vcm.GetCalls())
 
     def _name_for(self, number: str | None) -> str | None:
         if not number:
@@ -145,12 +159,10 @@ class PhoneService:
         try:
             import dbus
             bus = self._system_bus()
-            manager = dbus.Interface(bus.get_object("org.ofono", "/"),
-                                     "org.ofono.Manager")
-            modems = manager.GetModems()
-            if not modems:
+            path = self._first_modem(bus)
+            if not path:
                 return {"status": "error", "error": "sem modem"}
-            dbus.Interface(bus.get_object("org.ofono", modems[0][0]),
+            dbus.Interface(bus.get_object("org.ofono", path),
                            "org.ofono.VoiceCallManager").HangupAll()
             return {"status": "ok"}
         except Exception as e:
@@ -163,12 +175,10 @@ class PhoneService:
         try:
             import dbus
             bus = self._system_bus()
-            manager = dbus.Interface(bus.get_object("org.ofono", "/"),
-                                     "org.ofono.Manager")
-            modems = manager.GetModems()
-            if not modems:
+            path = self._first_modem(bus)
+            if not path:
                 return {"status": "error", "error": "sem modem"}
-            dbus.Interface(bus.get_object("org.ofono", modems[0][0]),
+            dbus.Interface(bus.get_object("org.ofono", path),
                            "org.ofono.VoiceCallManager").Dial(clean, "default")
             return {"status": "ok", "number": clean}
         except Exception as e:
