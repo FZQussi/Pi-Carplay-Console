@@ -34,7 +34,7 @@
             <div class="app-icon-img" data-icon="camera"></div>
             <div class="app-icon-label">Câmara</div>
        </div>
-        <div class="app-icon" onclick="showScreen('screen-maps')">
+        <div class="app-icon" onclick="openMapsTab()">
             <div class="app-icon-img" data-icon="navigation"></div>
             <div class="app-icon-label">Navegação</div>
        </div>
@@ -106,15 +106,6 @@
         <div class="camera-view" id="camera-view">
             <div class="muted">Câmara indisponível (requer hardware)</div>
         </div>
-    </div>
-</div>
-
-<!-- Navegação: Google Maps embebido. A screen fica no DOM mesmo escondida,
-     por isso o iframe não recarrega ao voltar (mantém zoom/posição). -->
-<div class="screen hidden" id="screen-maps">
-    <div class="maps-page">
-        <button class="maps-back" onclick="showScreen('screen-home')"><span data-icon="back"></span> Painel</button>
-        <iframe id="maps-frame" class="maps-frame" allow="geolocation" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
 </div>
 

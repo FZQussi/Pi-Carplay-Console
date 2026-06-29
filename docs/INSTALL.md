@@ -212,10 +212,12 @@ Tornar executável e configurar autostart. Para V1 com auto-login CLI, usar
 `~/.bash_profile` para chamar `startx` que por sua vez executa o script kiosk. Detalhes
 XFCE/LXDE autostart dependem do setup — ver `DEVELOPMENT.md` se necessário.
 
-> **Maps / GPS:** o botão *Navegação* abre uma screen interna com o Google Maps embebido
-> (iframe) e um botão *Painel* sobreposto para voltar — sem janelas extra. Nota: o módulo
-> USB GPS (gpsd) **não** alimenta o ponto azul do Google Maps (a geolocalização do Chromium
-> é separada); centramos o mapa no fix inicial do gpsd quando existe.
+> **Maps / GPS:** o botão *Navegação* abre o `maps.google.com` real **noutro separador**
+> (fora da app), reaproveitando sempre o mesmo separador. Atenção: em `--kiosk` não há barra
+> de separadores, por isso voltar ao painel precisa de teclado/gesto (`Ctrl+W` para fechar o
+> mapa, `Ctrl+Tab` para alternar) ou de correr o Chromium **sem** `--kiosk`. O módulo USB GPS
+> (gpsd) **não** alimenta o ponto azul do Google Maps — a geolocalização do Chromium é
+> separada (IP/Google).
 
 ---
 

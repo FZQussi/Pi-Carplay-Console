@@ -99,7 +99,6 @@ function showScreen(id) {
     else if (id === 'screen-settings') loadSettingsScreen();
     else if (id === 'screen-camera') openCamera();
     else if (id === 'screen-obd') { loadObd(); screenTimer = setInterval(loadObd, 1000); }
-    else if (id === 'screen-maps') loadMaps();
     else if (id === 'screen-phone') loadPhone();
     else if (id === 'screen-climate') loadClimate();
 }
@@ -549,22 +548,12 @@ async function loadObd() {
     } catch (e) { console.error("Erro OBD:", e); }
 }
 
-// === Mapas: Google Maps embebido (screen interna) ========================
-// Carrega o iframe só na 1ª abertura. Como a screen fica no DOM (só
-// escondida), o iframe não recarrega ao voltar — mantém zoom/posição.
-// ponytail: o USB GPS (gpsd) NÃO move o ponto azul do Google — a
-// geolocalização do Chromium é separada. Centramos no fix inicial e basta.
-let mapsLoaded = false;
-async function loadMaps() {
-    if (mapsLoaded) return;
-    mapsLoaded = true;
-    let center = "";
-    try {
-        const p = await (await fetch("/gps/position")).json();
-        if (p.lat != null && p.lon != null) center = `&q=${p.lat},${p.lon}`;
-    } catch (e) { /* sem fix: o embed abre num centro por defeito */ }
-    document.getElementById("maps-frame").src =
-        `https://maps.google.com/maps?z=15&output=embed${center}`;
+// === Mapas: abre o Google Maps real noutro separador, fora da app ========
+// Nome de alvo fixo → cliques repetidos reaproveitam o mesmo separador (só
+// 1 mapa aberto). ponytail: em --kiosk não há tab bar; voltar ao painel
+// precisa de teclado/gesto (Ctrl+W / Ctrl+Tab) ou de tirar o --kiosk.
+function openMapsTab() {
+    window.open("https://www.google.com/maps", "aveoos-maps");
 }
 
 // === Telefone (HFP): dialpad, contactos, chamada =========================
