@@ -567,16 +567,47 @@ body {
 /* Telefone (HFP) */
 .phone-page {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 32px;
+    flex-direction: row;
+    gap: 24px;
+    padding: 16px 28px;
     height: 100%;
+    overflow: hidden;
+}
+
+/* Coluna esquerda: teclado de marcação (largura fixa). */
+.phone-left {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 318px;
+    flex: none;
     overflow-y: auto;
     scrollbar-width: none;
 }
 
-.phone-page h2 { color: var(--accent); font-size: 1.5rem; }
+/* Coluna direita: pesquisa + lista de contactos com scroll. */
+.phone-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.contact-search {
+    width: 100%;
+    flex: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 1rem;
+}
+
+.contact-search::placeholder { color: var(--text-dim); }
 
 .dial-number {
     width: 100%;
@@ -651,8 +682,11 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: 100%;
-    max-width: 360px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-right: 4px;
 }
 
 .contact-row {
@@ -696,7 +730,7 @@ body {
 
 .call-buttons { display: flex; gap: 40px; margin-top: 20px; }
 
-.call-accept, .call-decline {
+.call-accept, .call-decline, .call-mute {
     width: 72px;
     height: 72px;
     border-radius: 50%;
@@ -711,4 +745,6 @@ body {
 
 .call-accept { background: var(--accent); color: #000; }
 .call-decline { background: #e5484d; }
-.call-accept:active, .call-decline:active { transform: scale(0.92); }
+.call-mute { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.call-mute.active { background: #e0a23b; color: #000; }
+.call-accept:active, .call-decline:active, .call-mute:active { transform: scale(0.92); }

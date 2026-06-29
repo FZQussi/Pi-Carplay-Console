@@ -112,15 +112,19 @@
 <!-- Telefone (HFP) -->
 <div class="screen hidden" id="screen-phone">
     <div class="phone-page">
-        <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
-        <h2>Telefone</h2>
-        <input type="text" id="dial-number" class="dial-number" readonly placeholder="Número">
-        <div class="dialpad" id="dialpad"></div>
-        <div class="dial-actions">
-            <button class="dial-call" onclick="dialNumber()"><span data-icon="phone"></span> Ligar</button>
-            <button class="dial-back" onclick="dialBackspace()">⌫</button>
+        <div class="phone-left">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <input type="text" id="dial-number" class="dial-number" readonly placeholder="Número">
+            <div class="dialpad" id="dialpad"></div>
+            <div class="dial-actions">
+                <button class="dial-call" onclick="dialNumber()"><span data-icon="phone"></span> Ligar</button>
+                <button class="dial-back" onclick="dialBackspace()">⌫</button>
+            </div>
         </div>
-        <div class="contacts-list" id="contacts-list"><span class="muted">A carregar contactos...</span></div>
+        <div class="phone-right">
+            <input type="text" id="contact-search" class="contact-search" placeholder="Procurar contacto..." oninput="filterContacts(this.value)">
+            <div class="contacts-list" id="contacts-list"><span class="muted">A carregar contactos...</span></div>
+        </div>
     </div>
 </div>
 
@@ -131,6 +135,7 @@
         <div class="call-number" id="call-number"></div>
         <div class="call-state" id="call-state"></div>
         <div class="call-buttons">
+            <button class="call-mute hidden" id="call-mute" onclick="toggleMute()"><span data-icon="mic"></span></button>
             <button class="call-accept" id="call-accept" onclick="answerCall()"><span data-icon="phone"></span></button>
             <button class="call-decline" onclick="hangupCall()"><span data-icon="phone-hangup"></span></button>
         </div>
