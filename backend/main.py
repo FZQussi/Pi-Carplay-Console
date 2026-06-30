@@ -153,8 +153,15 @@ app.include_router(phone_router)
 
 @app.get("/")
 def root():
-    """Serve o SPA vanilla. Todas as screens vivem dentro deste HTML."""
-    return FileResponse(str(FRONTEND_PAGES_DIR / "index.html"))
+    """Serve o SPA vanilla. Todas as screens vivem dentro deste HTML.
+
+    no-store: o kiosk não deve manter o HTML em cache entre updates (já
+    aconteceu mostrar uma versão antiga em cache depois de um OTA).
+    """
+    return FileResponse(
+        str(FRONTEND_PAGES_DIR / "index.html"),
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/status")
