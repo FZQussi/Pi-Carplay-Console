@@ -555,14 +555,30 @@ async function loadObd() {
     } catch (e) { console.error("Erro OBD:", e); }
 }
 
-// === Mapas: Google Maps embebido no próprio ecrã (com Voltar) ============
-// output=embed é frameável sem chave de API e mantém o mapa interativo
-// (pan/zoom/pesquisa). Carregado só à 1.ª abertura para não puxar rede no
-// arranque. ponytail: o embed não tem navegação turn-by-turn; se for preciso,
-// trocar pela Maps Embed API (precisa de chave) com mode=directions.
+// === Mapas: OpenStreetMap embebido no próprio ecrã (com Voltar) ==========
+// O embed keyless do Google (output=embed) deixou de funcionar — agora só
+// devolve um stub "Abrir no Maps", não renderiza mapa. O embed do
+// OpenStreetMap não precisa de chave e mostra um mapa interativo (pan/zoom).
+// Centramos na posição atual via geolocation do browser (nativo, sem chave);
+// se falhar, fica a vista por defeito. ponytail: sem pesquisa/rotas; se for
+// preciso navegação real, usar a Google Maps Embed API (precisa de chave).
+function osmUrl(lat, lon) {
+    const d = 0.02;  // ~2 km de margem à volta do ponto
+    const bbox = `${lon - d}%2C${lat - d}%2C${lon + d}%2C${lat + d}`;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
+}
+
 function loadMaps() {
     const frame = document.getElementById("maps-frame");
-    if (frame && !frame.src) frame.src = "https://www.google.com/maps?output=embed";
+    if (!frame) return;
+    if (!frame.src) frame.src = osmUrl(38.73, -9.15);   // vista por defeito (Lisboa)
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            p => { frame.src = osmUrl(p.coords.latitude, p.coords.longitude); },
+            () => {},   // negado/indisponível → fica a vista por defeito
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    }
 }
 
 // === Telefone (HFP): dialpad, contactos, chamada =========================
