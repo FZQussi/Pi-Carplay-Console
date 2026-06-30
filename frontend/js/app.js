@@ -101,6 +101,7 @@ function showScreen(id) {
     else if (id === 'screen-camera') openCamera();
     else if (id === 'screen-obd') { loadObd(); screenTimer = setInterval(loadObd, 1000); }
     else if (id === 'screen-phone') loadPhone();
+    else if (id === 'screen-nav') loadMaps();
     else if (id === 'screen-climate') loadClimate();
 }
 
@@ -554,12 +555,14 @@ async function loadObd() {
     } catch (e) { console.error("Erro OBD:", e); }
 }
 
-// === Mapas: abre o Google Maps real noutro separador, fora da app ========
-// Nome de alvo fixo → cliques repetidos reaproveitam o mesmo separador (só
-// 1 mapa aberto). ponytail: em --kiosk não há tab bar; voltar ao painel
-// precisa de teclado/gesto (Ctrl+W / Ctrl+Tab) ou de tirar o --kiosk.
-function openMapsTab() {
-    window.open("https://www.google.com/maps", "aveoos-maps");
+// === Mapas: Google Maps embebido no próprio ecrã (com Voltar) ============
+// output=embed é frameável sem chave de API e mantém o mapa interativo
+// (pan/zoom/pesquisa). Carregado só à 1.ª abertura para não puxar rede no
+// arranque. ponytail: o embed não tem navegação turn-by-turn; se for preciso,
+// trocar pela Maps Embed API (precisa de chave) com mode=directions.
+function loadMaps() {
+    const frame = document.getElementById("maps-frame");
+    if (frame && !frame.src) frame.src = "https://www.google.com/maps?output=embed";
 }
 
 // === Telefone (HFP): dialpad, contactos, chamada =========================

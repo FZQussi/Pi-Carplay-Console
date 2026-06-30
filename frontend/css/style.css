@@ -714,6 +714,26 @@ body {
 .mini-btn:hover { color: var(--text); }
 .mini-btn:active { background: var(--surface-active); }
 
+/* Navegação — mapa embebido a ocupar o ecrã abaixo do cabeçalho. */
+.nav-page {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 28px 24px;
+    height: 100%;
+    min-height: 0;
+}
+
+.maps-frame {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border: 0;
+    border-radius: 22px;
+    box-shadow: 0 10px 30px var(--shadow);
+    background: var(--surface);
+}
+
 /* Telefone (HFP) ------------------------------------------------------------ */
 .phone-page {
     display: flex;

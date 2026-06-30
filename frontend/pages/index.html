@@ -47,7 +47,7 @@
             <div class="tile-icon" data-icon="camera"></div>
             <div class="tile-text"><div class="tile-label">Câmara</div><div class="tile-sub">Marcha-atrás</div></div>
         </div>
-        <div class="tile tile--nav" style="--app:#3b82f6" onclick="openMapsTab()">
+        <div class="tile tile--nav" style="--app:#3b82f6" onclick="showScreen('screen-nav')">
             <div class="tile-icon" data-icon="navigation"></div>
             <div class="tile-text"><div class="tile-label">Navegação</div><div class="tile-sub">Google Maps</div></div>
         </div>
@@ -130,6 +130,19 @@
         <div class="camera-view" id="camera-view">
             <div class="muted">Câmara indisponível (requer hardware)</div>
         </div>
+    </div>
+</div>
+
+<!-- Navegação — Google Maps embebido (interativo, com Voltar). Fica dentro
+     da app, por isso não precisa de tab bar para voltar (resolve o kiosk). -->
+<div class="screen hidden" id="screen-nav">
+    <div class="nav-page">
+        <div class="page-head">
+            <button class="back-btn" onclick="showScreen('screen-home')"><span data-icon="back"></span> Voltar</button>
+            <h2><span data-icon="navigation"></span> Navegação</h2>
+        </div>
+        <iframe id="maps-frame" class="maps-frame" title="Google Maps"
+                allow="geolocation" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
 </div>
 
