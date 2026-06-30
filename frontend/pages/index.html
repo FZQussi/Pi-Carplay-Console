@@ -8,32 +8,30 @@
 </head>
 <body>
 
-<!-- Camada de fundo ambiente: gradientes lentos que dão "vida" sem distrair.
-     Puro CSS (transform), separado do conteúdo para não repintar a UI. -->
+
 <div class="ambient" aria-hidden="true"></div>
 
-<!-- Splash de arranque: escondido pelo JS quando o primeiro estado chega. -->
+
 <div class="splash" id="splash">
     <div class="splash-logo" data-icon="music"></div>
     <div class="splash-title">AveoOS</div>
     <div class="splash-sub">a iniciar sistema</div>
 </div>
 
-<!-- Barra de topo -->
+
 <div class="top-bar">
     <div class="top-bar-left">
         <div id="time">00:00</div>
         <div id="date" class="top-date">--</div>
     </div>
     <div class="top-bar-right">
-        <!-- Indicador de sistema: só aparece quando há temperatura alta
-             ou aviso de undervoltage/throttle (preenchido por JS). -->
+    
+           
         <div id="sys-status" class="hidden chip"></div>
         <div id="bt-status" class="chip"><span data-icon="bluetooth-off"></span> Sem Bluetooth</div>
     </div>
 </div>
 
-<!-- Menu principal (bento) -->
 <div class="screen" id="screen-home">
     <div class="app-grid">
         <div class="tile tile--music" style="--app:#1db954" onclick="showScreen('screen-music')">
