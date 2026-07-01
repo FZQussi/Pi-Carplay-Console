@@ -21,6 +21,7 @@ def test_parse_devices_empty():
 
 
 def test_dbus_prefers_non_root(monkeypatch):
+    monkeypatch.setattr(runtime, "_cached_bus", None)  # ignora cache de runs anteriores
     monkeypatch.setattr(runtime.glob, "glob",
                         lambda p: ["/run/user/0/bus", "/run/user/1000/bus"])
     env = runtime.dbus_session_env()
@@ -28,5 +29,6 @@ def test_dbus_prefers_non_root(monkeypatch):
 
 
 def test_dbus_fallback_when_none(monkeypatch):
+    monkeypatch.setattr(runtime, "_cached_bus", None)  # sem cache: exercita o fallback
     monkeypatch.setattr(runtime.glob, "glob", lambda p: [])
     assert isinstance(runtime.dbus_session_env(), dict)  # não rebenta

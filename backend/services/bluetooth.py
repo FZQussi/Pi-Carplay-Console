@@ -52,38 +52,38 @@ class BluetoothService:
 
     def get_status(self):
         try:
-            mac = self._connected_mac()
-            if not mac:
+            # `devices Connected` já devolve "Device <MAC> <Nome>" e, por
+            # definição, o que aparece aqui está ligado. Isso torna o antigo
+            # `bluetoothctl info <mac>` redundante — evitamos um subprocesso
+            # por tick do monitor (de 3 para 2 spawns/segundo no Pi).
+            connected = parse_devices(self._run("devices", "Connected").stdout)
+            if not connected:
                 return {"connected": False, "device": None, "playing": False,
                         "track": None, "artist": None, "duration": 0, "position": 0}
-
-            info = self._run("info", mac).stdout
-            connected = "Connected: yes" in info
-            name_match = re.search(r"Name: (.+)", info)
+            device = connected[0]
 
             track = artist = None
             playing = False
             duration = position = 0
 
-            if connected:
-                meta = subprocess.run(
-                    ["playerctl", "metadata", "--format",
-                     "{{status}}|{{artist}}|{{title}}|{{mpris:length}}|{{position}}"],
-                    capture_output=True, text=True, timeout=3,
-                    env=dbus_session_env(),
-                )
-                if meta.returncode == 0:
-                    parts = meta.stdout.strip().split("|")
-                    if len(parts) == 5:
-                        playing = parts[0] == "Playing"
-                        artist = _clean_artist(parts[1])
-                        track = parts[2]
-                        duration = int(parts[3]) if parts[3].strip().lstrip("-").isdigit() else 0
-                        position = int(parts[4]) if parts[4].strip().lstrip("-").isdigit() else 0
+            meta = subprocess.run(
+                ["playerctl", "metadata", "--format",
+                 "{{status}}|{{artist}}|{{title}}|{{mpris:length}}|{{position}}"],
+                capture_output=True, text=True, timeout=3,
+                env=dbus_session_env(),
+            )
+            if meta.returncode == 0:
+                parts = meta.stdout.strip().split("|")
+                if len(parts) == 5:
+                    playing = parts[0] == "Playing"
+                    artist = _clean_artist(parts[1])
+                    track = parts[2]
+                    duration = int(parts[3]) if parts[3].strip().lstrip("-").isdigit() else 0
+                    position = int(parts[4]) if parts[4].strip().lstrip("-").isdigit() else 0
 
             return {
-                "connected": connected,
-                "device": name_match.group(1).strip() if name_match else None,
+                "connected": True,
+                "device": device["name"],
                 "playing": playing,
                 "track": track,
                 "artist": artist,
